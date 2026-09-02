@@ -9,10 +9,11 @@ Before making a non-trivial change, read:
 1. `docs/AI_HANDOFF.md`
 2. `docs/MILESTONES.md`
 3. `docs/IMPROVEMENTS.md`
-4. the task-relevant architecture/findings/security docs
-5. the relevant source and tests
+4. `docs/DECISIONS.md`
+5. the task-relevant architecture/findings/security docs
+6. the relevant source and tests
 
-`docs/AI_HANDOFF.md` is the canonical operational handoff for autonomous coding agents. `docs/MILESTONES.md` defines sequencing and acceptance gates. `docs/IMPROVEMENTS.md` is a prioritized backlog, not permission to skip the active milestone.
+`docs/AI_HANDOFF.md` is the canonical operational handoff for autonomous coding agents. `docs/MILESTONES.md` defines sequencing and acceptance gates. `docs/IMPROVEMENTS.md` is a prioritized backlog, not permission to skip the active milestone. `docs/DECISIONS.md` records decisions an agent must not reopen incidentally and questions it must research rather than guess.
 
 If no issue/task is assigned, select work using the task-selection rules in those documents. Prefer the first unblocked milestone gate over broad feature expansion.
 
@@ -36,6 +37,7 @@ Do not:
 - `docs/AI_HANDOFF.md` — current state, priorities, autonomous execution protocol
 - `docs/MILESTONES.md` — detailed milestone gates and Definition of Done
 - `docs/IMPROVEMENTS.md` — prioritized technical/quality backlog
+- `docs/DECISIONS.md` — locked/provisional decisions and open research questions
 - `docs/ARCHITECTURE.md` — internal boundaries and invariants
 - `docs/FINDINGS.md` — finding semantics/API surface
 - `docs/THREAT_MODEL.md` — security boundaries
