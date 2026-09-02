@@ -1,5 +1,9 @@
 # drizzle-doctor
 
+[![CI](https://github.com/Duylamneuuu/drizzle-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/Duylamneuuu/drizzle-doctor/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Duylamneuuu/drizzle-doctor/actions/workflows/codeql.yml/badge.svg)](https://github.com/Duylamneuuu/drizzle-doctor/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > Never let Drizzle silently skip a migration again.
 
 `drizzle-doctor` is a read-only CLI for auditing Drizzle migration history before deployment. It checks the migration journal on disk, compares it with PostgreSQL's Drizzle migration table, and flags states that Drizzle's timestamp high-watermark migration logic can skip.
