@@ -30,19 +30,20 @@ Before editing code, read these files in order:
 3. `README.md` — public product contract and CLI UX
 4. `docs/MILESTONES.md` — detailed implementation sequence and acceptance gates
 5. `docs/IMPROVEMENTS.md` — prioritized quality/technical improvements
-6. `docs/ARCHITECTURE.md` — module boundaries and invariants
-7. `docs/FINDINGS.md` — finding codes and semantics
-8. `docs/THREAT_MODEL.md` — security boundaries
-9. `docs/AUTOMATION.md` — cloud/automation policy
-10. `docs/ROADMAP.md` — high-level public direction
-11. relevant source files and tests for the task
+6. `docs/DECISIONS.md` — locked decisions and questions that must not be guessed
+7. `docs/ARCHITECTURE.md` — module boundaries and invariants
+8. `docs/FINDINGS.md` — finding codes and semantics
+9. `docs/THREAT_MODEL.md` — security boundaries
+10. `docs/AUTOMATION.md` — cloud/automation policy
+11. `docs/ROADMAP.md` — high-level public direction
+12. relevant source files and tests for the task
 
 If documents disagree, use this precedence:
 
 1. safety/security invariants
 2. tests that encode intentional current behavior
 3. `README.md` public contract
-4. `docs/AI_HANDOFF.md` and `AGENTS.md`
+4. `docs/AI_HANDOFF.md`, `AGENTS.md`, and locked decisions
 5. architecture/findings docs
 6. roadmap/improvement ideas
 
@@ -159,6 +160,7 @@ Update the smallest relevant set of:
 - `docs/FINDINGS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/THREAT_MODEL.md`
+- `docs/DECISIONS.md` when a product/compatibility decision changes
 - `CHANGELOG.md`
 - milestone status
 
