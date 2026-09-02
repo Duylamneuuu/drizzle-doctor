@@ -132,7 +132,7 @@ M1 is complete when:
 
 ---
 
-## M2 — Package and prerelease hardening ⏳
+## M2 — Package and prerelease hardening 🚧
 
 Depends on: M1.
 

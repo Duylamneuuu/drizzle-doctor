@@ -93,12 +93,13 @@ See `docs/MILESTONES.md` for gates and exact completion criteria.
 
 ## 5. Existing GitHub tasks
 
-At the time of this handoff, the repository already has issues for major work, including:
+Open issues track the next major work:
 
-- real-history/fixture validation
-- ephemeral PostgreSQL replay
-- GitHub Action packaging
-- first npm prerelease preparation
+- first npm prerelease preparation (#5) — milestone M2
+- ephemeral PostgreSQL replay (#2) — milestone M3
+- GitHub Action packaging (#3) — milestone M4
+
+The M1 validation issue (#1) is closed as completed.
 
 When an issue is assigned, treat the issue as the task scope. When no issue is assigned, choose the first unblocked item in `docs/MILESTONES.md` and prefer creating/updating an issue rather than performing a large untracked change.
 

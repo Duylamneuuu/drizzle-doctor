@@ -15,71 +15,25 @@ Use it together with `docs/MILESTONES.md`. If an item conflicts with the active 
 
 # P0 — correctness and release blockers
 
-## P0.1 Expand the fixture matrix
+## P0.1 Expand the fixture matrix ✅ (completed in M1)
 
-Current unit/integration coverage proves the initial core works, but the project needs a named fixture for every important state in M1.
+Delivered by M1.1: `tests/m1-matrix.test.ts` and `tests/cli.test.ts` assert exact finding codes, severities, summary counters, and exit behavior for every modeled repository and database state. Fixtures are deterministic and live under `tests`.
 
-Improve by:
+## P0.2 Add an upstream semantics verification test/process ✅ (completed in M1)
 
-- storing small deterministic fixture repositories under tests
-- asserting exact finding codes and summary counters
-- separating repository corruption fixtures from database-state fixtures
-- making expected false-positive/ambiguous cases explicit
+Delivered by M1.2: `tests/upstream-semantics.test.ts` pins `drizzle-orm@0.45.2` and asserts hash/timestamp equivalence against the real package. `docs/COMPATIBILITY.md` records the verified sources, the finding-to-upstream mapping, the M1.4 false-positive review, and the upgrade checklist.
 
-Why: this is the strongest defense against regressions in a diagnostic tool.
+## P0.3 Commit a lockfile and switch CI to reproducible installs (~half done)
 
-## P0.2 Add an upstream semantics verification test/process
+`package-lock.json` is committed (M2.1). CI workflows still run `npm install`; switching to `npm ci` on the reproducible install path remains for M2.1, together with confirming the locked graph on the Node 20/22 matrix.
 
-The tool models Drizzle behavior that may change upstream.
+## P0.4 Smoke-test the packed package (~half done)
 
-Improve by:
+CI runs `npm pack --dry-run` on the Node 22 matrix leg only (M2.2). Installing the produced tarball into a temporary consumer directory and running the installed `drizzle-doctor` binary is still missing. Manual check on `main` passes: the tarball contains only `dist`, `README.md`, `LICENSE`, `package.json`, and `--help`/`repo` work from the installed tarball.
 
-- documenting the exact Drizzle source locations/versions reviewed
-- testing assumptions through minimal compatibility fixtures
-- adding a repeatable maintainer checklist for upstream upgrades
-- avoiding a brittle test that downloads `main` on every CI run
+## P0.5 Remove version duplication ✅ (completed in M1)
 
-Why: silently modeling outdated Drizzle behavior is worse than failing loudly.
-
-## P0.3 Commit a lockfile and switch CI to reproducible installs
-
-The repository should not depend on unconstrained fresh dependency resolution for every CI run.
-
-Improve by:
-
-- generating/committing the npm lockfile
-- using `npm ci` in CI after the lockfile exists
-- verifying the supported Node matrix with the locked dependency graph
-
-Why: deterministic installs are part of deterministic tooling.
-
-## P0.4 Smoke-test the packed package
-
-`npm run build` is not enough to prove the npm artifact works.
-
-Improve by having CI or a release check:
-
-1. run `npm pack`
-2. install the produced tarball into a temporary consumer directory
-3. run `drizzle-doctor --help`
-4. run a small `repo` fixture through the installed binary
-5. verify the library export only if it is intentionally public
-
-Why: catches missing files, broken bin paths, ESM/export mistakes and packaging drift.
-
-## P0.5 Remove version duplication
-
-The CLI currently hard-codes its version while `package.json` also owns a version.
-
-Improve by deriving CLI version from package metadata or a build-time single source of truth.
-
-Requirements:
-
-- keep package execution simple under ESM
-- avoid adding a dependency just for version reading
-- add a test that `--version` matches package metadata
-
-Why: release version drift is easy to create and confusing to users.
+The CLI reads `--version` from `package.json` at runtime via `createRequire` (no new dependency); `tests/cli.test.ts` asserts `--version` matches package metadata.
 
 ## P0.6 Review database URL handling
 
