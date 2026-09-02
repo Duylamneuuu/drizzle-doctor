@@ -83,7 +83,14 @@ node dist/cli.js status \
 - **v0.4:** stronger divergent-history detection and policy configuration
 - **v0.5+:** SQLite/D1, MySQL, Neon/Supabase/Turso-oriented adapters where they add real value
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the detailed plan.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the high-level roadmap.
+
+For the detailed engineering plan, see:
+
+- [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md) — canonical start point for coding agents
+- [`docs/MILESTONES.md`](docs/MILESTONES.md) — milestone sequence and acceptance gates
+- [`docs/IMPROVEMENTS.md`](docs/IMPROVEMENTS.md) — prioritized technical/quality backlog
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — locked decisions and open research questions
 
 ## Project principles
 
@@ -95,7 +102,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the detailed plan.
 
 ## Contributing
 
-Contributions are welcome. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) and the architecture notes in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Contributions are welcome. Human contributors can start with [`CONTRIBUTING.md`](CONTRIBUTING.md). Coding agents should start with [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md) and follow [`AGENTS.md`](AGENTS.md).
 
 ## License
 
