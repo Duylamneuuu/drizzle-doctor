@@ -39,13 +39,21 @@ M0 is considered complete as long as future changes preserve the invariants in `
 
 ---
 
-## M1 — Validate v0.1 against realistic Drizzle histories 🚧
+## M1 — Validate v0.1 against realistic Drizzle histories ✅
 
 ### Why this comes first
 
 The current implementation is useful only if its model of Drizzle migration history matches real repositories and current upstream behavior. This milestone converts an implementation hypothesis into evidence.
 
-### Required deliverables
+### Delivered
+
+- M1.1 synthetic fixture suite covering all listed states, asserting exact finding codes, severities, summary counters, and exit behavior (`tests/m1-matrix.test.ts`, `tests/cli.test.ts`)
+- M1.2 upstream semantics verified against the pinned npm-published `drizzle-orm@0.45.2` (hash, journal, high-watermark apply condition, migration table defaults); equivalence asserted in `tests/upstream-semantics.test.ts`, details in `docs/COMPATIBILITY.md`
+- M1.3 purposes-built representative migration history with realistic journal metadata (`version`/`dialect` fields, epoch-ms timestamps, statement breakpoints)
+- M1.4 false-positive review documented per error finding in `docs/COMPATIBILITY.md`
+- CLI exit-code correction: invalid invocations (unknown command/option) now exit `2` instead of `1`, matching the documented contract; `--version` derives from `package.json`
+
+### Detailed deliverables (reference)
 
 #### M1.1 Synthetic fixture suite
 

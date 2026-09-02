@@ -9,21 +9,15 @@
 
 ## Upstream behavior we model
 
-At the time this project was created, Drizzle ORM's PostgreSQL migrator:
+Verified against the npm-published `drizzle-orm@0.45.2` build (2026-09-02); see `docs/COMPATIBILITY.md` for exact source references, the finding-to-upstream mapping, and the upgrade checklist. Summary of the modeled behavior:
 
-- stores `hash` and `created_at` in a migration table
-- reads the latest database `created_at`
-- applies a local migration only when its local `folderMillis` is newer than that high-watermark
+- Drizzle's PostgreSQL migrator stores `hash` and `created_at` in a migration table
+- reads the latest database `created_at` (`order by created_at desc limit 1`)
+- applies a local migration only when its local `folderMillis` is strictly newer than that high-watermark
 - computes the local migration hash as SHA-256 of the SQL file contents
+- `tests/upstream-semantics.test.ts` asserts hash/timestamp equivalence against the pinned real package
 
 That behavior is why a missing local migration whose timestamp is older than/equal to the latest applied timestamp is dangerous: the migrator can regard it as already behind the frontier and skip it.
-
-Upstream source references:
-
-- PostgreSQL migrator: https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/pg-core/dialect.ts
-- migration file reader/hash logic: https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/migrator.ts
-
-Upstream behavior can change. When it does, tests and documentation in this project must be reviewed before claiming compatibility.
 
 ## Modules
 

@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
 import process from 'node:process';
 
-import { Command } from 'commander';
+import { Command, CommanderError } from 'commander';
 
 import { analyzeDatabaseState } from './analyze.js';
 import { readPostgresMigrationState } from './postgres.js';
 import { inspectMigrationRepository } from './repository.js';
 import { createRepoReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
 import { hasErrors } from './types.js';
+
+const require = createRequire(import.meta.url);
+const packageVersion = require('../package.json').version as string;
 
 interface RepoOptions {
   migrations: string;
@@ -57,17 +61,15 @@ const program = new Command();
 program
   .name('drizzle-doctor')
   .description('Read-only Drizzle migration integrity and PostgreSQL state auditor.')
-  .version('0.1.0')
-  .showHelpAfterError()
-  .option('-m, --migrations <dir>', 'Drizzle migrations directory', './drizzle')
-  .option('--json', 'Emit machine-readable JSON')
-  .action(async (options: RepoOptions) => runRepo(options));
+  .version(packageVersion)
+  .showHelpAfterError();
 
 program
   .command('repo')
   .description('Audit the local Drizzle migration journal and SQL files.')
   .option('-m, --migrations <dir>', 'Drizzle migrations directory', './drizzle')
   .option('--json', 'Emit machine-readable JSON')
+  .exitOverride()
   .action(async (options: RepoOptions) => runRepo(options));
 
 program
@@ -78,9 +80,30 @@ program
   .option('--migrations-schema <schema>', 'Drizzle migration schema', 'drizzle')
   .option('--migrations-table <table>', 'Drizzle migration table', '__drizzle_migrations')
   .option('--json', 'Emit machine-readable JSON')
+  .exitOverride()
   .action(async (options: StatusOptions) => runStatus(options));
 
+program.command('*', { hidden: true }).argument('[args...]').exitOverride().action((args: string[]) => {
+  throw new Error(`unknown command '${args.join(' ')}'`);
+});
+
+program.exitOverride();
+
 program.parseAsync(process.argv).catch((error: unknown) => {
+  if (error instanceof CommanderError) {
+    // Help/version requests are successful exits; a bare invocation shows help
+    // with a non-zero code; every other commander error means the command
+    // could not complete (unknown command/option), not that migration
+    // problems were found.
+    if (error.exitCode === 0) return;
+    if (error.code === 'commander.helpDisplayed') {
+      process.exitCode = 1;
+      return;
+    }
+    process.stderr.write(`drizzle-doctor: ${error.message}\n`);
+    process.exitCode = 2;
+    return;
+  }
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`drizzle-doctor: ${message}\n`);
   process.exitCode = 2;

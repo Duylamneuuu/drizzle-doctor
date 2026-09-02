@@ -16,7 +16,7 @@ For autonomous implementation, use `docs/AI_HANDOFF.md` as the entry point, `doc
 - [x] detect high-watermark skip hazards
 - [x] text + JSON reporters
 - [x] CI + integration test against PostgreSQL
-- [ ] validate against real-world Drizzle fixture repositories
+- [x] validate against real-world Drizzle fixture repositories
 - [ ] publish first npm prerelease
 
 ## v0.2 — clean replay
