@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a check, adapter, integration, or usability improvement.
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Developer problem
+      description: Describe the real migration workflow or failure this would solve.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current workaround
+      description: What do people do today, and why is it insufficient?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: contribution
+    attributes:
+      label: Contribution surface
+      description: If this is an adapter/check, can it stay isolated from the core analyzer?
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project principles
+      options:
+        - label: The feature is useful without an AI model.
+          required: true
+        - label: It can preserve the read-only default or clearly explains why not.
+          required: true

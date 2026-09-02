@@ -1,0 +1,52 @@
+name: Bug report
+description: Report an incorrect finding, crash, or migration-state problem.
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Remove credentials and private database details before posting logs.
+  - type: input
+    id: version
+    attributes:
+      label: drizzle-doctor version/commit
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: input
+    id: drizzle
+    attributes:
+      label: Drizzle ORM / drizzle-kit version
+      placeholder: drizzle-orm x.y.z, drizzle-kit x.y.z
+    validations:
+      required: true
+  - type: dropdown
+    id: command
+    attributes:
+      label: Command
+      options:
+        - repo
+        - status
+        - other / future command
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include finding codes and sanitized output when useful.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Prefer a public/synthetic fixture. Do not paste credentials or private SQL dumps.
+    validations:
+      required: true

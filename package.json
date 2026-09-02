@@ -1,0 +1,58 @@
+{
+  "name": "drizzle-doctor",
+  "version": "0.1.0",
+  "description": "Read-only Drizzle migration integrity and PostgreSQL state auditor.",
+  "type": "module",
+  "bin": {
+    "drizzle-doctor": "dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm test",
+    "prepublishOnly": "npm run check && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "drizzle",
+    "drizzle-orm",
+    "migration",
+    "postgres",
+    "postgresql",
+    "database",
+    "ci"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Duylamneuuu/drizzle-doctor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Duylamneuuu/drizzle-doctor/issues"
+  },
+  "homepage": "https://github.com/Duylamneuuu/drizzle-doctor#readme",
+  "dependencies": {
+    "commander": "^14.0.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
