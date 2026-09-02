@@ -75,6 +75,22 @@ node dist/cli.js status \
 - `1` — at least one error-level finding was detected
 - `2` — the command could not complete (invalid arguments, unreadable input, connection failure, etc.)
 
+## Machine-readable output
+
+Add `--json` to `repo` or `status` for deterministic JSON on stdout:
+
+| Field | Present in | Meaning |
+| --- | --- | --- |
+| `command` | both | `"repo"` or `"status"` |
+| `ok` | both | `true` when there are no error-level findings (`false` correlates with exit code `1`; exit code `2` means the command did not produce a report) |
+| `generatedAt` | both | ISO-8601 timestamp |
+| `repository` | both | `{ migrationsDir, journalPath, migrationCount, orphanSqlFiles }` |
+| `database` | `status` only | `{ schema, table, tableExists, rowCount, maxCreatedAt }` |
+| `summary` | `status` only | `{ local, database, applied, pending, skippedHazards, hashMismatches, databaseOnly }` |
+| `findings` | both | array of `{ code, severity, message, hint?, details? }` |
+
+Finding codes and severities are documented in [`docs/FINDINGS.md`](docs/FINDINGS.md). The project is pre-release: the field set may grow additively, and finding codes and severities are treated as user-facing API once released.
+
 ## Planned roadmap
 
 - **v0.1:** repository audit + PostgreSQL migration-state audit
