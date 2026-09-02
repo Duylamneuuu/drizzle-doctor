@@ -3,17 +3,22 @@
   "version": "0.1.0",
   "description": "Read-only Drizzle migration integrity and PostgreSQL state auditor.",
   "type": "module",
+  "types": "./dist/index.d.ts",
   "bin": {
     "drizzle-doctor": "dist/cli.js"
   },
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
     "README.md",
     "LICENSE"
   ],
+  "sideEffects": false,
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx src/cli.ts",
