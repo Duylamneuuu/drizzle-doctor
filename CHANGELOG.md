@@ -15,3 +15,14 @@ The project intends to follow Semantic Versioning once packages are published.
 - JSON and text reports with stable exit semantics
 - unit and PostgreSQL integration tests
 - CI, Dependabot, contribution and security documentation
+- M1 validation suite: finding-by-finding fixture matrix for every modeled repository and database state
+- upstream semantics verification against the pinned `drizzle-orm@0.45.2` package with hash/timestamp equivalence tests
+- compatibility notes documenting verified Drizzle behavior, finding mapping, and an upgrade checklist (`docs/COMPATIBILITY.md`)
+- custom migration table coverage in PostgreSQL integration tests
+
+### Changed
+
+- invalid CLI invocations (unknown command/option) now exit with code `2` instead of `1`, matching the documented error-level contract
+- running `drizzle-doctor` without a subcommand now shows help with exit code `2` instead of implicitly running `repo`; top-level `-m/--json` options moved to the `repo` command
+- `--version` derives from `package.json` instead of a hard-coded copy
+- pinned `drizzle-orm@0.45.2` as an exact devDependency for compatibility tests; `package-lock.json` committed

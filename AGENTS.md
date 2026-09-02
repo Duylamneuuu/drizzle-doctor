@@ -39,6 +39,7 @@ Do not:
 - `docs/IMPROVEMENTS.md` — prioritized technical/quality backlog
 - `docs/DECISIONS.md` — locked/provisional decisions and open research questions
 - `docs/ARCHITECTURE.md` — internal boundaries and invariants
+- `docs/COMPATIBILITY.md` — verified upstream Drizzle semantics and upgrade checklist
 - `docs/FINDINGS.md` — finding semantics/API surface
 - `docs/THREAT_MODEL.md` — security boundaries
 - `docs/AUTOMATION.md` — cloud automation policy

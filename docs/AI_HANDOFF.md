@@ -32,11 +32,12 @@ Before editing code, read these files in order:
 5. `docs/IMPROVEMENTS.md` — prioritized quality/technical improvements
 6. `docs/DECISIONS.md` — locked decisions and questions that must not be guessed
 7. `docs/ARCHITECTURE.md` — module boundaries and invariants
-8. `docs/FINDINGS.md` — finding codes and semantics
-9. `docs/THREAT_MODEL.md` — security boundaries
-10. `docs/AUTOMATION.md` — cloud/automation policy
-11. `docs/ROADMAP.md` — high-level public direction
-12. relevant source files and tests for the task
+8. `docs/COMPATIBILITY.md` — verified upstream Drizzle semantics and upgrade checklist
+9. `docs/FINDINGS.md` — finding codes and semantics
+10. `docs/THREAT_MODEL.md` — security boundaries
+11. `docs/AUTOMATION.md` — cloud/automation policy
+12. `docs/ROADMAP.md` — high-level public direction
+13. relevant source files and tests for the task
 
 If documents disagree, use this precedence:
 
@@ -66,17 +67,22 @@ The repository already contains the v0.1 core:
 - Node 20 and Node 22 CI coverage
 - CodeQL, Dependabot, security/contribution docs
 
+The repository also contains the completed M1 validation milestone:
+
+- M1.1 fixture suite asserting exact finding codes, severities, counters, and exit behavior for every modeled state
+- M1.2 upstream semantics verified against the pinned `drizzle-orm@0.45.2` with hash/timestamp equivalence tests
+- M1.4 false-positive review and upgrade checklist in `docs/COMPATIBILITY.md`
+- CLI exit-code contract enforced for invalid invocations
+
 The repository is still pre-release. Do not assume npm publication, a stable public API, or production-scale compatibility testing has happened.
 
 ## 4. Current priority
 
-The next priority is **validation before distribution**.
+The next priority is **package and prerelease hardening (M2)** — reproducible installs, packed-package smoke tests, CLI behavior hardening, and the documented output contract. Publishing itself still requires maintainer authorization.
 
-Do not jump directly to broad adapter support or feature expansion. First prove that the existing model matches representative real Drizzle migration histories and current upstream behavior.
+Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
-The active sequence is:
-
-1. M1 — validate v0.1 behavior and fixtures
+1. M1 — validate v0.1 behavior and fixtures ✅
 2. M2 — prerelease/package hardening
 3. M3 — safe clean-replay capability
 4. M4 — GitHub Action distribution
