@@ -2,6 +2,8 @@
 
 This roadmap describes intended direction, not release promises. Real user reports should be allowed to change priorities.
 
+For autonomous implementation, use `docs/AI_HANDOFF.md` as the entry point, `docs/MILESTONES.md` for detailed acceptance gates, `docs/IMPROVEMENTS.md` for the prioritized engineering backlog, and `docs/DECISIONS.md` for locked decisions/open questions. This file stays intentionally high-level.
+
 ## v0.1 — migration integrity baseline
 
 - [x] TypeScript CLI skeleton
