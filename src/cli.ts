@@ -9,7 +9,9 @@ import { analyzeDatabaseState } from './analyze.js';
 import { readPostgresMigrationState } from './postgres.js';
 import { inspectMigrationRepository } from './repository.js';
 import { createRepoReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
+import { redactConnectionString } from './sanitize.js';
 import { hasErrors } from './types.js';
+import type { DatabaseSnapshot } from './types.js';
 
 const require = createRequire(import.meta.url);
 const packageVersion = require('../package.json').version as string;
@@ -48,11 +50,19 @@ async function runStatus(options: StatusOptions): Promise<void> {
     throw new Error('Missing database URL. Pass --database-url or set DATABASE_URL.');
   }
 
-  const database = await readPostgresMigrationState({
-    connectionString,
-    schema: options.migrationsSchema,
-    table: options.migrationsTable,
-  });
+  let database: DatabaseSnapshot;
+  try {
+    database = await readPostgresMigrationState({
+      connectionString,
+      schema: options.migrationsSchema,
+      table: options.migrationsTable,
+    });
+  } catch (error) {
+    // Never let a driver error echo the connection string or its password
+    // (invariant D11). The original error is preserved as `cause` only.
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(redactConnectionString(rawMessage, connectionString), { cause: error });
+  }
   const analysis = analyzeDatabaseState(inspection.migrations, database);
   printReport(createStatusReport(inspection, database, analysis), Boolean(options.json));
 }
@@ -76,7 +86,7 @@ program
   .command('status')
   .description('Compare local migrations with the PostgreSQL Drizzle migration table.')
   .option('-m, --migrations <dir>', 'Drizzle migrations directory', './drizzle')
-  .option('--database-url <url>', 'PostgreSQL connection URL (defaults to DATABASE_URL)')
+  .option('--database-url <url>', 'PostgreSQL connection URL (defaults to DATABASE_URL; prefer the environment variable so the credential stays out of shell history and process listings)')
   .option('--migrations-schema <schema>', 'Drizzle migration schema', 'drizzle')
   .option('--migrations-table <table>', 'Drizzle migration table', '__drizzle_migrations')
   .option('--json', 'Emit machine-readable JSON')

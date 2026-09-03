@@ -119,4 +119,23 @@ describe('cli exit behavior', () => {
     expect(code).toBe(2);
     expect(stderr).toContain('Missing database URL');
   });
+
+  it('status connection failures never echo the database URL or password (D11)', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const env = { ...process.env };
+    delete env.DATABASE_URL;
+    const url = 'postgres://doctor:sup3r-s3cret@127.0.0.1:1/nope';
+    const { code, stdout, stderr } = await run(
+      ['status', '--migrations', dir, '--database-url', url],
+      env,
+    );
+    expect(code).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).not.toContain('sup3r-s3cret');
+    expect(stderr).not.toContain('postgres://doctor');
+    expect(stderr).not.toContain(url);
+  });
 });
