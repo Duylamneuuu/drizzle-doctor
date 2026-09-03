@@ -23,39 +23,29 @@ Delivered by M1.1: `tests/m1-matrix.test.ts` and `tests/cli.test.ts` assert exac
 
 Delivered by M1.2: `tests/upstream-semantics.test.ts` pins `drizzle-orm@0.45.2` and asserts hash/timestamp equivalence against the real package. `docs/COMPATIBILITY.md` records the verified sources, the finding-to-upstream mapping, the M1.4 false-positive review, and the upgrade checklist.
 
-## P0.3 Commit a lockfile and switch CI to reproducible installs (~half done)
+## P0.3 Commit a lockfile and switch CI to reproducible installs ✅
 
-`package-lock.json` is committed (M2.1). CI workflows still run `npm install`; switching to `npm ci` on the reproducible install path remains for M2.1, together with confirming the locked graph on the Node 20/22 matrix.
+`package-lock.json` is committed and both CI jobs install with `npm ci` (M2.1). The locked graph is exercised on the Node 20/22 matrix.
 
-## P0.4 Smoke-test the packed package (~half done)
+## P0.4 Smoke-test the packed package ✅
 
-CI runs `npm pack --dry-run` on the Node 22 matrix leg only (M2.2). Installing the produced tarball into a temporary consumer directory and running the installed `drizzle-doctor` binary is still missing. Manual check on `main` passes: the tarball contains only `dist`, `README.md`, `LICENSE`, `package.json`, and `--help`/`repo` work from the installed tarball.
+The unit suite replaces the old dry-run-only step: `tests/packaging.test.ts` builds the CLI, verifies the shebang and bin entry, asserts the tarball contains only intended files, and resolves the library export. A dedicated `package-smoke` CI job then installs the produced tarball into a temporary consumer directory and runs the installed `drizzle-doctor` binary against a real fixture (`--help`, `--version`, `repo --json`).
 
 ## P0.5 Remove version duplication ✅ (completed in M1)
 
 The CLI reads `--version` from `package.json` at runtime via `createRequire` (no new dependency); `tests/cli.test.ts` asserts `--version` matches package metadata.
 
-## P0.6 Review database URL handling
+## P0.6 Review database URL handling ✅
 
-The CLI supports `--database-url`, which is convenient but can expose credentials through shell history or process listings even if the application never prints the value.
-
-Improve by evaluating one of these approaches:
-
-- prefer `DATABASE_URL` and document it as the recommended path
-- keep the flag but warn in security docs/help about shell history/process visibility
-- support a safer indirect source later if real CI/local workflows need it
+`DATABASE_URL` remains the recommended path and `--database-url` help text now explains the shell-history/process-list exposure instead of implying it is equally safe. The `--database-url` flag stays for CI workflows that need it; a safer indirect source can be considered later if real workflows ask for it.
 
 Do not invent a complex secret manager integration.
 
 Why: credential safety includes how secrets reach the process, not only report redaction.
 
-## P0.7 Test error sanitization explicitly
+## P0.7 Test error sanitization explicitly ✅
 
-Add tests ensuring connection/parser/runtime errors cannot echo a supplied credential-bearing URL into normal stderr/report output.
-
-If an upstream PostgreSQL client error contains the original connection string, sanitize before displaying it.
-
-Why: the current product promise says credentials are not logged; this needs executable evidence.
+`src/sanitize.ts` redacts the connection string, its `user:password@` prefix, percent-encoded password forms, and `password=` fragments from any error thrown while reading database state; `status` wraps driver errors before they reach stderr (the original error is preserved only as `cause`). `tests/sanitize.test.ts` covers adversarial driver messages and `tests/cli.test.ts` asserts a real connection failure never echoes the URL or password.
 
 ## P0.8 Define the machine-readable output contract
 

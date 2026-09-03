@@ -42,8 +42,11 @@ Database inspection is **read-only**. `drizzle-doctor` does not create schemas, 
 
 ## Development quick start
 
+The repository ships a committed `package-lock.json`; use `npm ci` to install
+reproducibly (this is what CI runs).
+
 ```bash
-npm install
+npm ci
 npm run build
 node dist/cli.js repo --migrations ./drizzle
 ```
