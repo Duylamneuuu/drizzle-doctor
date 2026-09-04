@@ -88,7 +88,9 @@ M2 progress as of 2026-09-04 (see `docs/MILESTONES.md` for detailed status):
 - M2.4 delivered: machine-readable output contract defined in `docs/OUTPUT_CONTRACT.md` (exit codes, finding fields, command-level JSON shape, stable vs provisional fields, evolution policy); reports now carry `formatVersion: 1`; shape pinned by `tests/output-contract.test.ts` (P0.8/Q2)
 - Remaining: M2.5 prerelease preparation (version choice, changelog, publish — maintainer-authorized)
 
-Open Dependabot PRs as of 2026-09-03: commander 15 blocked (raises Node floor to 22.12; do not merge while Node 20 is supported, D9), typescript 7.0.2 reviewed as compatible but left for maintainer decision (toolchain major), @types/node 26.4.0 reviewed as safe.
+Open Dependabot PRs as of 2026-09-04: @types/node 26.4.0 merged (#8). commander 15 still blocked (declares `engines: node >=22.12.0`; do not merge while Node 20 is supported, D9 — commander 14 receives security updates until May 2027, so there is no security pressure). typescript 7.0.2 reviewed as compatible (engines `node >=16.20.0`, CI green on Node 20/22, devDependency only) but left open for the maintainer's toolchain-major decision. Both status notes are recorded on the PRs themselves (#7, #10).
+
+Maintenance run 2026-09-04: no CI failures in repository history (all 60 main + 42 PR runs green); CodeQL green on latest main; local `npm run typecheck`, `npm test` (58 passed), `npm run build`, and `npm pack --dry-run` all pass; no credential leakage found. P1.1 database-row ambiguity tests merged (PR #17).
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
@@ -110,6 +112,8 @@ Open issues track the next major work:
 - GitHub Action packaging (#3) — milestone M4
 
 The M1 validation issue (#1) is closed as completed.
+
+Note: issue #18 (created 2026-09-04) is a duplicate M2-checklist tracker of #5; its content was folded into #5's thread of comments. Maintenance agents cannot close issues with the available first-party tools, so #18 may remain open until a manual close.
 
 When an issue is assigned, treat the issue as the task scope. When no issue is assigned, choose the first unblocked item in `docs/MILESTONES.md` and prefer creating/updating an issue rather than performing a large untracked change.
 
