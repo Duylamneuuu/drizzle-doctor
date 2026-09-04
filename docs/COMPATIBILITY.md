@@ -109,3 +109,45 @@ When a Drizzle release changes migration behavior:
    semantics" section and the finding mapping if anything moved
 4. update `docs/ARCHITECTURE.md` if the modeled behavior changed
 5. treat any behavioral delta as a deliberate, documented product decision
+
+## Upstream watch (2026-09-04)
+
+Re-checked against the npm registry and `drizzle-orm` sources on 2026-09-04.
+
+### Stable line — unchanged — no action needed
+
+- `drizzle-orm@0.45.2` is still the latest **stable** release (`dist-tag
+  latest`, published 2026-03-27); `drizzle-kit@0.31.10` is the latest stable
+  kit and still generates the journal-based folder format this tool models.
+- `readMigrationFiles` on `drizzle-orm` `main` (checked 2026-09-04) is
+  unchanged: `meta/_journal.json`, `entry.when` → `folderMillis`,
+  `entry.breakpoints` → `bps`, whole-file SHA-256. All "Verified semantics"
+  above remain accurate for the stable line; no code or test change was
+  needed this week.
+
+### v1 release-candidate line — a separate compatibility track
+
+`drizzle-orm@1.0.0-rc.4` / `drizzle-kit@1.0.0-rc.4` (checked 2026-09-04)
+changes several modeled assumptions. Do not extend `status`/`repo` semantics
+to v1 tables or folders until a deliberate v1 compatibility decision is made
+(research queue item R2 tracks this):
+
+- Journal-based `readMigrationFiles` still exists in rc.4, but `drizzle-kit
+  up` migrates v1 projects to a new folder layout (per-migration folders,
+  no `journal.json`): https://orm.drizzle.team/docs/upgrade-v1
+- The PostgreSQL migration table is versioned. A new database gets
+  `id serial primary key, hash text NOT NULL, created_at bigint, name text,
+  applied_at timestamp with time zone DEFAULT now()`; existing v0 tables are
+  upgraded (`upgradeIfNeeded`, `drizzle-orm/src/up-migrations/pg.ts`).
+  `created_at` is still the journal millis at insert time.
+- The apply decision moved out of the single-row high-watermark select. The
+  rc.4 async PostgreSQL path reads all rows and filters local migrations in
+  `getMigrationsToRun` (`drizzle-orm/src/migrator.utils.ts`) by `name` set
+  membership (with `folderMillis`→name fallback formatting via
+  `formatToMillis`); there is no `order by created_at desc limit 1` watermark
+  in that path.
+- Upstream issue https://github.com/drizzle-team/drizzle-orm/issues/5769
+  (open, updated 2026-08-26) still reports silent skips caused by
+  high-watermark behavior in the v1 line; the rc.4 source inspected here
+  differs from that report, so the v1 line is still moving — re-verify
+  before modeling it.

@@ -1,6 +1,6 @@
 {
   "name": "drizzle-doctor",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "Read-only Drizzle migration integrity and PostgreSQL state auditor.",
   "type": "module",
   "types": "./dist/index.d.ts",

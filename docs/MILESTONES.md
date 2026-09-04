@@ -185,26 +185,39 @@ Before prerelease, document:
 
 Prefer additive future changes ✅ (evolution policy).
 
-#### M2.5 npm prerelease preparation
+#### M2.5 npm prerelease preparation ✅ (fully prepared 2026-09-04)
 
-Prepare, but do not publish without explicit maintainer authorization:
+Prepare, but do not publish without explicit maintainer authorization
+(D14, `AGENTS.md` stop conditions). All preparation items are done:
 
-- package name availability/ownership check
-- version choice
-- changelog entry
-- `npm pack --dry-run`
-- install-and-smoke-test from tarball
-- provenance/Trusted Publishing plan if used
+- package name availability/ownership check ✅ — `drizzle-doctor` is not
+  taken on the npm registry (checked 2026-09-04); no ownership conflict
+- version choice ✅ — `0.1.0-alpha.1` (package.json + lockfile bumped;
+  `--version` derives from package.json)
+- changelog entry ✅ — `CHANGELOG.md` `[0.1.0-alpha.1]` section prepared
+- `npm pack --dry-run` ✅ — tarball contains only `dist/`, `README.md`,
+  `LICENSE`, `package.json` (35 files, 18.0 kB)
+- install-and-smoke-test from tarball ✅ — CI `package-smoke` job installs
+  the tarball in a consumer project and runs `--help`, `--version`,
+  `repo --json`; local CLI runs against a real fixture match the README
+  examples and `docs/OUTPUT_CONTRACT.md`
+- provenance/Trusted Publishing plan ✅ (recommendation, not a decision) —
+  prefer `npm publish --provenance` from the GitHub Actions workflow on a
+  tagged commit: npm provenance via OIDC avoids a long-lived publish token.
+  Final choice and the publication itself are the maintainer's
 
 ### Acceptance criteria
 
-- M1 complete
-- lockfile committed
-- clean checkout can install/test/build reproducibly
-- packed tarball smoke test succeeds
-- documented CLI examples match actual behavior
-- CI green
-- no release is published automatically
+- M1 complete ✅
+- lockfile committed ✅
+- clean checkout can install/test/build reproducibly ✅
+- packed tarball smoke test succeeds ✅
+- documented CLI examples match actual behavior ✅ (verified 2026-09-04)
+- CI green ✅
+- no release is published automatically ✅ (publication is maintainer-gated)
+
+All pre-publication criteria hold; the milestone stays 🚧 only because the
+final npm publish / release-tag step requires maintainer authorization.
 
 ---
 

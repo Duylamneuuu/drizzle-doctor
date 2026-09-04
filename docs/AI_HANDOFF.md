@@ -86,11 +86,16 @@ M2 progress as of 2026-09-04 (see `docs/MILESTONES.md` for detailed status):
 - M2.2 delivered: `tests/packaging.test.ts` (shebang, tarball contents, library export) + `package-smoke` CI job installing the tarball into a consumer project
 - M2.3 delivered: CLI hardening checklist fully marked in `docs/MILESTONES.md`; credential sanitization added (`src/sanitize.ts`, P0.7/D11)
 - M2.4 delivered: machine-readable output contract defined in `docs/OUTPUT_CONTRACT.md` (exit codes, finding fields, command-level JSON shape, stable vs provisional fields, evolution policy); reports now carry `formatVersion: 1`; shape pinned by `tests/output-contract.test.ts` (P0.8/Q2)
-- Remaining: M2.5 prerelease preparation (version choice, changelog, publish — maintainer-authorized)
+- M2.5 prepared (2026-09-04): name availability checked (`drizzle-doctor` free on npm), version chosen `0.1.0-alpha.1` (package.json + lockfile), `CHANGELOG.md` prerelease section written, `npm pack --dry-run` clean (35 files: dist/README/LICENSE/package.json), tarball smoke verified by CI `package-smoke` and local CLI runs, provenance (`npm publish --provenance` via GitHub OIDC) recommended but not decided. The publish itself remains maintainer-gated (D14/AGENTS.md); no credentials exist in the automation sandbox, so nothing can be published by automation.
+
+All M2 pre-publication acceptance criteria hold; M2 stays 🚧 only for the
+maintainer-authorized publish step.
 
 Open Dependabot PRs as of 2026-09-04: @types/node 26.4.0 merged (#8). commander 15 still blocked (declares `engines: node >=22.12.0`; do not merge while Node 20 is supported, D9 — commander 14 receives security updates until May 2027, so there is no security pressure). typescript 7.0.2 reviewed as compatible (engines `node >=16.20.0`, CI green on Node 20/22, devDependency only) but left open for the maintainer's toolchain-major decision. Both status notes are recorded on the PRs themselves (#7, #10).
 
 Maintenance run 2026-09-04: no CI failures in repository history (all 60 main + 42 PR runs green); CodeQL green on latest main; local `npm run typecheck`, `npm test` (58 passed), `npm run build`, and `npm pack --dry-run` all pass; no credential leakage found. P1.1 database-row ambiguity tests merged (PR #17).
+
+Weekly maintainer/release review 2026-09-04: no release published — publication is maintainer-gated (D14, `AGENTS.md`, `docs/AUTOMATION.md`) and the automation environment holds no npm publish credentials. All safe preparation is complete (see M2.5 above). Upstream watch: stable `drizzle-orm@0.45.2`/`drizzle-kit@0.31.10` unchanged and still match `docs/COMPATIBILITY.md`; the v1 line (1.0.0-rc.4) is a separate compatibility track (versioned migration table with `name`/`applied_at`, `getMigrationsToRun` name-based skip in the async pg path, `drizzle-kit up` folder migration) — recorded under "Upstream watch" in `docs/COMPATIBILITY.md`, tracked by R2/Q6, not modeled yet. Next highest-value work after M2 publication: M3 (safe clean replay on disposable PostgreSQL); M3 implementation may start on a feature branch per `docs/MILESTONES.md`.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 

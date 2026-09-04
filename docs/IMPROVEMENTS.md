@@ -269,6 +269,13 @@ Output: a comparison note, not code first.
 
 Research meaningful `_journal.json` shape changes across supported Drizzle Kit versions.
 
+Evidence (2026-09-04): the stable line (kit 0.31.10 / orm 0.45.2) still
+generates and reads the journal format this tool models. The v1 line
+(orm/kit 1.0.0-rc.4) introduces a new folder layout without `journal.json`
+(via `drizzle-kit up`) plus a versioned migration table (`name`,
+`applied_at` added; `created_at` retained). Details and sources:
+`docs/COMPATIBILITY.md` → "Upstream watch".
+
 Output: compatibility matrix and fixtures.
 
 ## R3 — migration hash edge cases
