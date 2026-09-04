@@ -47,18 +47,14 @@ Why: credential safety includes how secrets reach the process, not only report r
 
 `src/sanitize.ts` redacts the connection string, its `user:password@` prefix, percent-encoded password forms, and `password=` fragments from any error thrown while reading database state; `status` wraps driver errors before they reach stderr (the original error is preserved only as `cause`). `tests/sanitize.test.ts` covers adversarial driver messages and `tests/cli.test.ts` asserts a real connection failure never echoes the URL or password.
 
-## P0.8 Define the machine-readable output contract
+## P0.8 Define the machine-readable output contract ✅
 
-Before external automation depends on JSON, document and test:
-
-- report top-level fields
-- finding fields
-- summary fields
-- command identity
-- nullable/optional fields
-- exit-code relationship to `ok`
-
-Consider a `formatVersion` field before stable release if it meaningfully reduces future ambiguity.
+Delivered by M2.4: `docs/OUTPUT_CONTRACT.md` documents exit codes, command
+identity, report top-level fields, finding fields, summary fields,
+nullable/optional field rules, and the exit-code↔`ok` relationship. Reports
+now carry a `formatVersion: 1` field with a documented evolution policy
+(additive changes keep the version; breaking shape changes bump it), and
+`tests/output-contract.test.ts` pins the documented shape.
 
 Why: JSON becomes API very quickly once CI users consume it.
 

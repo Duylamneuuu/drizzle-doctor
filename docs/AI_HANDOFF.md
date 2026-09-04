@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-09-03.
+Last reviewed: 2026-09-04.
 
 ## 1. Mission
 
@@ -80,12 +80,13 @@ The repository is still pre-release. Do not assume npm publication, a stable pub
 
 The next priority is **package and prerelease hardening (M2)** — reproducible installs, packed-package smoke tests, CLI behavior hardening, and the documented output contract. Publishing itself still requires maintainer authorization.
 
-M2 progress as of 2026-09-03 (see `docs/MILESTONES.md` for detailed status):
+M2 progress as of 2026-09-04 (see `docs/MILESTONES.md` for detailed status):
 
 - M2.1 delivered: committed lockfile + `npm ci` in CI and sandbox setup
 - M2.2 delivered: `tests/packaging.test.ts` (shebang, tarball contents, library export) + `package-smoke` CI job installing the tarball into a consumer project
-- M2.3 largely covered: CLI hardening checklist marked per-item in `docs/MILESTONES.md`; credential sanitization added (`src/sanitize.ts`, P0.7/D11)
-- Remaining: M2.4 output-contract documentation polish, M2.5 prerelease preparation (version choice, changelog, publish — maintainer-authorized)
+- M2.3 delivered: CLI hardening checklist fully marked in `docs/MILESTONES.md`; credential sanitization added (`src/sanitize.ts`, P0.7/D11)
+- M2.4 delivered: machine-readable output contract defined in `docs/OUTPUT_CONTRACT.md` (exit codes, finding fields, command-level JSON shape, stable vs provisional fields, evolution policy); reports now carry `formatVersion: 1`; shape pinned by `tests/output-contract.test.ts` (P0.8/Q2)
+- Remaining: M2.5 prerelease preparation (version choice, changelog, publish — maintainer-authorized)
 
 Open Dependabot PRs as of 2026-09-03: commander 15 blocked (raises Node floor to 22.12; do not merge while Node 20 is supported, D9), typescript 7.0.2 reviewed as compatible but left for maintainer decision (toolchain major), @types/node 26.4.0 reviewed as safe.
 

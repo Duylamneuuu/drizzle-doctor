@@ -80,10 +80,14 @@ node dist/cli.js status \
 
 ## Machine-readable output
 
-Add `--json` to `repo` or `status` for deterministic JSON on stdout:
+Add `--json` to `repo` or `status` for deterministic JSON on stdout. The full
+contract — exit codes, report/finding/summary field shapes, stable vs
+provisional fields, and the evolution policy — is defined in
+[`docs/OUTPUT_CONTRACT.md`](docs/OUTPUT_CONTRACT.md) and pinned by tests.
 
 | Field | Present in | Meaning |
 | --- | --- | --- |
+| `formatVersion` | both | report shape version (currently `1`) |
 | `command` | both | `"repo"` or `"status"` |
 | `ok` | both | `true` when there are no error-level findings (`false` correlates with exit code `1`; exit code `2` means the command did not produce a report) |
 | `generatedAt` | both | ISO-8601 timestamp |

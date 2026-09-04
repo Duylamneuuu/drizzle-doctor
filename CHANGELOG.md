@@ -27,3 +27,4 @@ The project intends to follow Semantic Versioning once packages are published.
 - `--version` derives from `package.json` instead of a hard-coded copy
 - pinned `drizzle-orm@0.45.2` as an exact devDependency for compatibility tests; `package-lock.json` committed
 - database connection errors are sanitized before display: the connection string, its password, and `password=` fragments are redacted from stderr output, so driver errors can never echo credentials (invariant D11); `--database-url` help text now points users at `DATABASE_URL` to keep credentials out of shell history and process listings
+- JSON reports now include `formatVersion: 1` identifying the report shape, and the machine-readable output contract (exit codes, field shapes, stable vs provisional fields, evolution policy) is documented in `docs/OUTPUT_CONTRACT.md` and pinned by `tests/output-contract.test.ts`

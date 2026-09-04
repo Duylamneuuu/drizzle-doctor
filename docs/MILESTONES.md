@@ -167,16 +167,23 @@ Cover at minimum:
 - text/JSON mode parity ✅ (both reporters covered by CLI tests)
 - no credential echoing in errors ✅ (`tests/sanitize.test.ts`, `tests/cli.test.ts` D11 leak test)
 
-#### M2.4 Output contract
+#### M2.4 Output contract ✅
+
+Delivered: `docs/OUTPUT_CONTRACT.md` defines exit codes, command identity,
+report/finding/summary field shapes, optional-field rules, and stable vs
+provisional fields; a `formatVersion: 1` field identifies the report shape and
+the document defines the evolution policy (additive changes keep the version,
+breaking changes bump it). `tests/output-contract.test.ts` pins the documented
+shape and `tests/cli.test.ts` asserts the exit-code/`ok` relationship.
 
 Before prerelease, document:
 
-- exit codes
-- finding object fields
-- command-level JSON shape
-- which fields are stable vs provisional
+- exit codes ✅
+- finding object fields ✅
+- command-level JSON shape ✅
+- which fields are stable vs provisional ✅
 
-Prefer additive future changes.
+Prefer additive future changes ✅ (evolution policy).
 
 #### M2.5 npm prerelease preparation
 

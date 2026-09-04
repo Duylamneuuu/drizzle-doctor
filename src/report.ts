@@ -7,11 +7,19 @@ import type {
 } from './types.js';
 import { hasErrors } from './types.js';
 
+/**
+ * Version of the machine-readable report shape (see docs/OUTPUT_CONTRACT.md).
+ * Additive field additions keep the same version; breaking shape changes bump
+ * it and require migration notes.
+ */
+export const REPORT_FORMAT_VERSION = 1;
+
 export function createRepoReport(
   inspection: RepoInspection,
   command: DoctorReport['command'] = 'repo',
 ): DoctorReport {
   return {
+    formatVersion: REPORT_FORMAT_VERSION,
     command,
     ok: !hasErrors(inspection.findings),
     generatedAt: new Date().toISOString(),
@@ -32,6 +40,7 @@ export function createStatusReport(
 ): DoctorReport {
   const findings: Finding[] = [...inspection.findings, ...analysis.findings];
   return {
+    formatVersion: REPORT_FORMAT_VERSION,
     command: 'status',
     ok: !hasErrors(findings),
     generatedAt: new Date().toISOString(),
