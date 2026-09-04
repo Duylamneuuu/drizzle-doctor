@@ -62,15 +62,13 @@ Why: JSON becomes API very quickly once CI users consume it.
 
 # P1 — high-value engineering improvements
 
-## P1.1 Add database row ambiguity tests
+## P1.1 Add database row ambiguity tests ✅
 
-The analyzer already recognizes duplicate database timestamps. Expand coverage for combinations such as:
-
-- duplicate timestamp with one matching local hash
-- duplicate timestamp with no matching local hash
-- multiple database-only rows
-- hash match at a different timestamp
-- database rows returned out of order
+Delivered: `tests/analyze.test.ts` now covers duplicate timestamp with a
+matching local hash, duplicate timestamp with no matching local hash, multiple
+database-only rows (raising the high-watermark), hash match at a different
+timestamp, and database rows returned out of order (order-independence
+asserted).
 
 Why: real migration tables can contain manually modified or historically odd states.
 
