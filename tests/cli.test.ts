@@ -90,10 +90,22 @@ describe('cli exit behavior', () => {
     );
     const { code, stdout } = await run(['repo', '--migrations', dir, '--json']);
     expect(code).toBe(0);
-    const report = JSON.parse(stdout) as { ok: boolean; command: string; generatedAt: string };
+    const report = JSON.parse(stdout) as { ok: boolean; command: string; generatedAt: string; formatVersion: number };
     expect(report.ok).toBe(true);
     expect(report.command).toBe('repo');
+    expect(report.formatVersion).toBe(1);
     expect(typeof report.generatedAt).toBe('string');
+  });
+
+  it('failing repository in JSON mode exits 1 with ok=false (exit-code contract)', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const { code, stdout } = await run(['repo', '--migrations', root, '--json']);
+    expect(code).toBe(1);
+    const report = JSON.parse(stdout) as { ok: boolean; command: string; findings: Array<{ code: string }> };
+    expect(report.ok).toBe(false);
+    expect(report.command).toBe('repo');
+    expect(report.findings.some((finding) => finding.code === 'REPO_JOURNAL_MISSING')).toBe(true);
   });
 
   it('unknown command exits 2, not 1', async () => {

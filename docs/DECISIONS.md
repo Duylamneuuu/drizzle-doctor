@@ -108,9 +108,15 @@ Evidence needed:
 - package import smoke tests
 - clear stable export surface
 
-### Q2 — Should JSON have an explicit format version?
+### Q2 — Should JSON have an explicit format version? ✅ resolved (2026-09-04)
 
-Likely useful before external automation grows, but define it only with a documented evolution policy.
+Yes. Reports carry `formatVersion: 1` and `docs/OUTPUT_CONTRACT.md` defines an
+evolution policy: additive field additions keep the version; breaking shape
+changes bump it with changelog migration notes. `formatVersion` identifies the
+report shape, not the tool version.
+
+Evidence: M2.4 output-contract work (`docs/OUTPUT_CONTRACT.md`,
+`tests/output-contract.test.ts`).
 
 ### Q3 — What is the safest long-term credential input UX?
 

@@ -55,6 +55,8 @@ export interface DatabaseAnalysis {
 }
 
 export interface DoctorReport {
+  /** Shape version of the machine-readable report; see docs/OUTPUT_CONTRACT.md. */
+  formatVersion: number;
   command: 'repo' | 'status';
   ok: boolean;
   generatedAt: string;
