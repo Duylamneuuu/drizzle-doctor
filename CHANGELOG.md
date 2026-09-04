@@ -4,7 +4,12 @@ All notable changes to this project will be documented here.
 
 The project intends to follow Semantic Versioning once packages are published.
 
-## Unreleased
+## [0.1.0-alpha.1] - 2026-09-04
+
+First npm prerelease. Prepared by the weekly maintainer/release review
+(package name `drizzle-doctor` is available on the npm registry, packed
+tarball verified). Publication itself requires maintainer authorization
+(`docs/DECISIONS.md` D14, `AGENTS.md`) and was not performed by automation.
 
 ### Added
 
@@ -28,3 +33,7 @@ The project intends to follow Semantic Versioning once packages are published.
 - pinned `drizzle-orm@0.45.2` as an exact devDependency for compatibility tests; `package-lock.json` committed
 - database connection errors are sanitized before display: the connection string, its password, and `password=` fragments are redacted from stderr output, so driver errors can never echo credentials (invariant D11); `--database-url` help text now points users at `DATABASE_URL` to keep credentials out of shell history and process listings
 - JSON reports now include `formatVersion: 1` identifying the report shape, and the machine-readable output contract (exit codes, field shapes, stable vs provisional fields, evolution policy) is documented in `docs/OUTPUT_CONTRACT.md` and pinned by `tests/output-contract.test.ts`
+
+## Unreleased
+
+Nothing yet.

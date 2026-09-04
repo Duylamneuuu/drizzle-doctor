@@ -134,6 +134,12 @@ Decide packaging/version pinning only after the npm/package surface is validated
 
 Do not guess a broad range. Build the compatibility matrix from current upstream review, fixtures and real reports.
 
+Evidence (2026-09-04): stable line (orm 0.45.2 / kit 0.31.10) verified
+unchanged, semantics in `docs/COMPATIBILITY.md` accurate. The v1 line
+(1.0.0-rc.4) is a separate format (see "Upstream watch" in
+`docs/COMPATIBILITY.md`) and must not be claimed as supported until a
+deliberate compatibility decision.
+
 ### Q7 — What is the next backend after PostgreSQL?
 
 No answer is locked. Let repeated user issues determine priority.
