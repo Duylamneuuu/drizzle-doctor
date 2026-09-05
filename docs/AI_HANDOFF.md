@@ -104,16 +104,16 @@ section pinned in `docs/OUTPUT_CONTRACT.md`, unit + integration + CLI-guard
 tests (all 82 tests green locally against a real PostgreSQL 16 instance;
 replay integration joins the CI `postgres-integration` job). Isolation model
 chosen and recorded in `docs/DECISIONS.md` Q4: explicitly supplied disposable
-target + `--confirm-destructive`; `replay` never reads `DATABASE_URL`. The
-replay PR is open for review; M2 publication remains the next gate before M4
-(GitHub Action distribution), which still depends on a stable enough
-prerelease.
+target + `--confirm-destructive`; `replay` never reads `DATABASE_URL`. M3 merged
+2026-09-05 (PR #21, squash `ebea403`); issue #2 closed as completed. M2
+publication remains the next gate before M4 (GitHub Action distribution), which
+still depends on a stable enough prerelease.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
 2. M2 — prerelease/package hardening
-3. M3 — safe clean-replay capability
+3. M3 — safe clean-replay capability ✅
 4. M4 — GitHub Action distribution
 5. M5 — compatibility/policy hardening
 6. M6+ — adapters only when justified by evidence
@@ -125,10 +125,10 @@ See `docs/MILESTONES.md` for gates and exact completion criteria.
 Open issues track the next major work:
 
 - first npm prerelease preparation (#5) — milestone M2
-- ephemeral PostgreSQL replay (#2) — milestone M3
 - GitHub Action packaging (#3) — milestone M4
 
-The M1 validation issue (#1) is closed as completed.
+The M1 validation issue (#1) is closed as completed; the M3 replay issue (#2)
+is closed as completed via PR #21.
 
 Note: issue #18 (created 2026-09-04) is a duplicate M2-checklist tracker of #5; its content was folded into #5's thread of comments. Maintenance agents cannot close issues with the available first-party tools, so #18 may remain open until a manual close.
 
