@@ -57,6 +57,7 @@ describe('cli exit behavior', () => {
     expect(stdout).toContain('Usage: drizzle-doctor');
     expect(stdout).toContain('repo');
     expect(stdout).toContain('status');
+    expect(stdout).toContain('replay');
   });
 
   it('--version matches package.json and exits 0', async () => {
@@ -149,5 +150,70 @@ describe('cli exit behavior', () => {
     expect(stderr).not.toContain('sup3r-s3cret');
     expect(stderr).not.toContain('postgres://doctor');
     expect(stderr).not.toContain(url);
+  });
+});
+
+describe('replay safety guards (M3)', () => {
+  it('replay without --database-url exits 2 and never reads DATABASE_URL', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    // Even with DATABASE_URL set, replay must refuse: it must never silently
+    // reuse status credentials for a destructive command (decision D10).
+    const env = { ...process.env, DATABASE_URL: 'postgres://doctor:hunter2-secret@127.0.0.1:5432/doctor' };
+    const { code, stderr } = await run(['replay', '--migrations', dir, '--confirm-destructive'], env);
+    expect(code).toBe(2);
+    expect(stderr).toContain('--database-url');
+    expect(stderr).not.toContain('hunter2-secret');
+  });
+
+  it('replay without --confirm-destructive refuses before connecting', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const env = { ...process.env };
+    delete env.DATABASE_URL;
+    // An unreachable target proves the guard fires before any connection is
+    // attempted: the error must be the refusal, not a network failure.
+    const { code, stderr } = await run(
+      ['replay', '--migrations', dir, '--database-url', 'postgres://doctor:x@127.0.0.1:1/nope'],
+      env,
+    );
+    expect(code).toBe(2);
+    expect(stderr).toContain('--confirm-destructive');
+    expect(stderr).not.toContain('ECONNREFUSED');
+    expect(stderr).not.toContain('error:'); // no driver error surfaces
+  });
+
+  it('replay connection failures never echo the database URL or password (D11)', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const env = { ...process.env };
+    delete env.DATABASE_URL;
+    const url = 'postgres://doctor:sup3r-s3cret@127.0.0.1:1/nope';
+    const { code, stdout, stderr } = await run(
+      ['replay', '--migrations', dir, '--database-url', url, '--confirm-destructive'],
+      env,
+    );
+    expect(code).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).not.toContain('sup3r-s3cret');
+    expect(stderr).not.toContain('postgres://doctor');
+    expect(stderr).not.toContain(url);
+  });
+
+  it('replay reports repository errors before touching the database', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const { code, stdout } = await run(['replay', '--migrations', root, '--json']);
+    expect(code).toBe(1);
+    const report = JSON.parse(stdout) as { command: string; ok: boolean; findings: Array<{ code: string }> };
+    expect(report.command).toBe('replay');
+    expect(report.ok).toBe(false);
+    expect(report.findings.some((finding) => finding.code === 'REPO_JOURNAL_MISSING')).toBe(true);
   });
 });

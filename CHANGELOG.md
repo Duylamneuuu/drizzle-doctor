@@ -36,4 +36,16 @@ tarball verified). Publication itself requires maintainer authorization
 
 ## Unreleased
 
-Nothing yet.
+### Added
+
+- `replay` command (M3): applies the full local migration history from zero on
+  an explicitly disposable PostgreSQL database. Requires an explicit
+  `--database-url` (never reads `DATABASE_URL`) and `--confirm-destructive`,
+  refuses targets whose migration table already has rows, replays in journal
+  order with Drizzle breakpoint splitting, and stops at the first failing
+  migration with the tag, statement index, SQLSTATE, and a sanitized error.
+  New findings: `REPLAY_MIGRATION_FAILED`, `REPLAY_TARGET_NOT_EMPTY`. The
+  `replay` report section and findings are pinned by
+  `tests/output-contract.test.ts`, unit/integration coverage in
+  `tests/replay.test.ts` and `tests/replay.integration.test.ts`, and CLI
+  safety guards in `tests/cli.test.ts`.

@@ -23,11 +23,12 @@ For autonomous implementation, use `docs/AI_HANDOFF.md` as the entry point, `doc
 
 Goal: prove that a fresh database can consume the full migration history in order.
 
-- ephemeral PostgreSQL replay runner
-- explicit isolation guardrails
-- identify the first failing migration/statement
-- CI-friendly summary and JSON result
-- no dependency on a hosted SaaS
+- [x] explicit disposable-target semantics (`--database-url` + `--confirm-destructive`; never reads `DATABASE_URL`)
+- [x] replay engine (journal order, Drizzle breakpoint splitting, per-migration transactions)
+- [x] identify the first failing migration/statement (tag, breakpoint chunk, SQLSTATE)
+- [x] CI-friendly summary and JSON result (`replay` report section, `REPLAY_MIGRATION_FAILED`/`REPLAY_TARGET_NOT_EMPTY` findings)
+- [x] no dependency on a hosted SaaS
+- [ ] shipped in a published prerelease (publication is maintainer-gated, D14)
 
 ## v0.3 — GitHub-native distribution
 

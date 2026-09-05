@@ -61,14 +61,22 @@ A PASS means only that implemented checks found no error-level findings. It is n
 
 ## Replay requirements
 
-Before `replay` ships, it must satisfy all of these:
+The `replay` command (milestone M3, `src/replay.ts`) ships and satisfies all
+of these:
 
-- execution target is explicitly disposable or created by the tool/CI
-- replay never defaults to `DATABASE_URL` used for `status`
-- clear destructive warning/CLI semantics
-- credentials are not logged
-- failing migration/statement is reported without dumping sensitive data unnecessarily
-- test suite includes a guard against accidental use of a production-style status URL
+- execution target is explicitly supplied by the user and must be confirmed
+  with `--confirm-destructive`; replay never creates or manages infrastructure
+- replay never defaults to `DATABASE_URL` used for `status` — it requires an
+  explicit `--database-url` and never reads the environment variable
+- clear destructive warning/CLI semantics: the command is visibly distinct
+  from `repo`/`status`, and the target must have an empty Drizzle migration
+  table or the run is refused
+- credentials are not logged: connection failures and migration errors are
+  sanitized before they reach stderr or the JSON report (invariant D11)
+- failing migration/statement is reported without dumping sensitive data
+  unnecessarily (tag, breakpoint-chunk index, SQLSTATE, sanitized message)
+- test suite includes a guard against accidental use of a production-style
+  status URL (`tests/cli.test.ts` asserts replay never reads `DATABASE_URL`)
 
 ## Security changes
 

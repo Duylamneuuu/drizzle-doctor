@@ -1,9 +1,9 @@
 # Machine-readable output contract
 
-This document defines the machine-readable (`--json`) output of the `repo` and
-`status` commands. It is the contract that CI and other automation should rely
-on, so it is pinned by tests (`tests/output-contract.test.ts`,
-`tests/cli.test.ts`).
+This document defines the machine-readable (`--json`) output of the `repo`,
+`status`, and `replay` commands. It is the contract that CI and other
+automation should rely on, so it is pinned by tests
+(`tests/output-contract.test.ts`, `tests/cli.test.ts`).
 
 The human-readable text report is intentionally not part of this contract;
 only the JSON shape, exit codes, and finding codes are stable machine
@@ -31,14 +31,15 @@ The JSON report is a single object on stdout. Top-level fields:
 
 | Field | Present in | Type | Meaning |
 | --- | --- | --- | --- |
-| `formatVersion` | both | `number` | Shape version of this report (currently `1`). See [Evolution policy](#evolution-policy). |
-| `command` | both | `"repo" \| "status"` | Command identity. |
-| `ok` | both | `boolean` | `true` when there are no error-level findings. |
-| `generatedAt` | both | `string` (ISO-8601) | Time the report was generated. Not deterministic. |
-| `repository` | both | `object` | Local repository audit summary. |
+| `formatVersion` | all | `number` | Shape version of this report (currently `1`). See [Evolution policy](#evolution-policy). |
+| `command` | all | `"repo" \| "status" \| "replay"` | Command identity. |
+| `ok` | all | `boolean` | `true` when there are no error-level findings. |
+| `generatedAt` | all | `string` (ISO-8601) | Time the report was generated. Not deterministic. |
+| `repository` | all | `object` | Local repository audit summary. |
 | `database` | `status` only | `object` | Database migration-table snapshot. |
 | `summary` | `status` only | `object` | Local-vs-database comparison counters. |
-| `findings` | both | `array` | Ordered list of finding objects. |
+| `replay` | `replay` only | `object` | Clean-replay outcome. |
+| `findings` | all | `array` | Ordered list of finding objects. |
 
 ### `repository`
 
@@ -71,6 +72,28 @@ The JSON report is a single object on stdout. Top-level fields:
 | `hashMismatches` | `number` | Local migrations whose hash differs from the row at the same timestamp. |
 | `databaseOnly` | `number` | Database rows with no matching local migration. |
 
+### `replay` (replay only)
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `schema` | `string` | Configured migration schema. |
+| `table` | `string` | Configured migration table. |
+| `total` | `number` | Local migrations the replay attempted to apply. |
+| `applied` | `number` | Migrations successfully applied before the run stopped. |
+| `blocked` | `string` (optional) | `"TARGET_NOT_EMPTY"` when the target already had migration rows and nothing was applied. |
+| `blockedRowCount` | `number` (optional) | Migration rows already present when the run was blocked. |
+| `firstFailure` | `object` (optional) | The first failing migration; present only on failure. |
+
+### `firstFailure` (replay only, optional)
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `tag` | `string` | Tag of the failing migration. |
+| `statement` | `number` | 1-based index of the failing Drizzle breakpoint chunk. |
+| `statementCount` | `number` | Total executed breakpoint chunks in the failing migration. |
+| `code` | `string` (optional) | PostgreSQL SQLSTATE when the driver provided one. |
+| `message` | `string` | Sanitized database error message (credential-safe). |
+
 ### `findings`
 
 Each finding object has exactly these fields; optional fields are **omitted**
@@ -87,6 +110,9 @@ Each finding object has exactly these fields; optional fields are **omitted**
 ## Optional fields
 
 - `database` and `summary` appear only in `status` reports.
+- `replay` appears only in `replay` reports.
+- `blocked`, `blockedRowCount`, and `firstFailure` appear only when the replay
+  outcome needs them; a successful replay omits all three.
 - `hint` and `details` appear only when a finding has them.
 - `maxCreatedAt` is `null` when there is no database high-watermark.
 
@@ -104,6 +130,7 @@ Provisional (may change additively before/after release):
 
 - `generatedAt` timing
 - exact `hint`/`details` contents
+- `firstFailure.code` (SQLSTATE) presence
 - any future additive fields
 
 ## Evolution policy

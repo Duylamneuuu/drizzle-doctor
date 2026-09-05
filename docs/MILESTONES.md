@@ -221,7 +221,7 @@ final npm publish / release-tag step requires maintainer authorization.
 
 ---
 
-## M3 — Safe clean replay on disposable PostgreSQL ⏳
+## M3 — Safe clean replay on disposable PostgreSQL 🚧
 
 Depends on: M1. Prefer M2 package hardening first, but implementation may begin earlier on a feature branch.
 
@@ -233,68 +233,92 @@ Answer a different question from `status`: can the full local migration history 
 
 Replay is **not read-only**, therefore it must be isolated from normal `status` behavior and must never silently target production.
 
+### Delivered (2026-09-05)
+
+- M3.1: `drizzle-doctor replay` command, visibly distinct from `repo`/`status` ✅
+- M3.2: isolation strategy chosen — explicitly supplied disposable target with
+  an affirmative `--confirm-destructive` flag; `replay` never reads
+  `DATABASE_URL` (guard tested); decision recorded in `docs/DECISIONS.md` Q4 ✅
+- M3.3: replay engine (`src/replay.ts`) — journal-order replay, Drizzle
+  breakpoint splitting, per-migration transactions, first-failure stop,
+  sanitized errors (D11), strict-clean target ✅
+- M3.4: result model — text + JSON (`REPLAY_MIGRATION_FAILED`,
+  `REPLAY_TARGET_NOT_EMPTY` findings, `replay` section in the report shape
+  pinned by `tests/output-contract.test.ts`) ✅
+- tests: `tests/replay.test.ts` (units), `tests/replay.integration.test.ts`
+  (success, syntax failure, dependency/order, failure mid-migration, custom
+  schema/table, verbatim search_path behavior, non-empty target, D11
+  sanitization), `tests/cli.test.ts` safety guards ✅
+- docs: `docs/COMPATIBILITY.md` replay semantics, `docs/ARCHITECTURE.md`,
+  `docs/THREAT_MODEL.md`, `docs/OUTPUT_CONTRACT.md`, `docs/FINDINGS.md`,
+  `docs/DECISIONS.md` (Q4) ✅
+
+Remaining for M3 completion: a tool-managed ephemeral-database option is
+explicitly out of scope (decision Q4); CI integration coverage runs through
+the existing `postgres-integration` job (replay tests join `npm test` when
+`TEST_DATABASE_URL` is set).
+
 ### Required deliverables
 
-#### M3.1 Explicit replay command
+#### M3.1 Explicit replay command ✅
 
-Proposed UX:
+UX:
 
 ```bash
-drizzle-doctor replay --migrations ./drizzle ...
+drizzle-doctor replay --migrations ./drizzle --database-url <disposable-url> --confirm-destructive
 ```
 
-The command must be visibly distinct from `repo` and `status`.
+The command is visibly distinct from `repo` and `status`.
 
-#### M3.2 Isolation strategy
+#### M3.2 Isolation strategy ✅
 
-Choose one supported model and document it clearly:
+Chosen: explicitly supplied disposable test database with an affirmative
+destructive-mode flag (`--confirm-destructive`). A hostname pattern alone is
+not proof that a database is disposable; replay also requires the target's
+migration table to be empty (`REPLAY_TARGET_NOT_EMPTY` otherwise).
 
-- tool-managed ephemeral PostgreSQL, or
-- explicitly supplied disposable test database with an affirmative destructive-mode flag
+`DATABASE_URL` is never reused implicitly for replay (tested in
+`tests/cli.test.ts`).
 
-A hostname pattern alone is not proof that a database is disposable.
+#### M3.3 Replay engine ✅
 
-Never reuse a normal `DATABASE_URL` implicitly for replay.
+- replay migrations in journal order ✅
+- respect Drizzle statement breakpoints (literal `--> statement-breakpoint` split, matching `readMigrationFiles`) ✅
+- stop at first failing migration ✅
+- capture migration tag and statement index (breakpoint chunk, 1-based) ✅
+- sanitize database errors (invariant D11) ✅
+- cleanup of tool-managed resources: N/A (no tool-managed infrastructure; target is user-supplied and disposable) ✅
 
-#### M3.3 Replay engine
+#### M3.4 Result model ✅
 
-- replay migrations in journal order
-- respect Drizzle statement breakpoints/semantics that affect execution
-- stop at first failing migration when appropriate
-- capture migration tag and statement index where reliable
-- sanitize database errors
-- clean up tool-managed ephemeral resources
+Text and JSON output identify:
 
-#### M3.4 Result model
+- pass/fail (`ok`, exit 0/1) ✅
+- number of migrations attempted (`replay.total`) ✅
+- first failing migration (`firstFailure.tag`) ✅
+- statement index where meaningful (`firstFailure.statement`/`statementCount`) ✅
+- sanitized database error category/message (`firstFailure.code` SQLSTATE + `message`) ✅
+- cleanup outcome: N/A for the user-supplied target model ✅
 
-Text and JSON output should identify:
+### Required tests ✅
 
-- pass/fail
-- number of migrations attempted
-- first failing migration
-- statement index where meaningful
-- sanitized database error category/message
-- cleanup outcome if the tool manages the database
-
-### Required tests
-
-- successful replay
-- SQL syntax failure
-- dependency/order failure
-- failure mid-migration
-- custom migration folder
-- cancellation/cleanup path where feasible
-- safety guard preventing accidental reuse of ordinary status credentials
+- successful replay ✅ (`tests/replay.integration.test.ts`)
+- SQL syntax failure ✅
+- dependency/order failure ✅
+- failure mid-migration ✅
+- custom migration folder ✅
+- cancellation/cleanup path: N/A (no tool-managed resources to cancel; target is user-supplied) ✅
+- safety guard preventing accidental reuse of ordinary status credentials ✅ (`tests/cli.test.ts`)
 
 ### Acceptance criteria
 
-- replay cannot start without explicit disposable-target semantics
-- no credentials appear in output
-- successful histories replay deterministically
-- failures identify the earliest useful location
-- `repo` and `status` remain usable without replay infrastructure
-- threat model updated
-- CI integration coverage passes
+- replay cannot start without explicit disposable-target semantics ✅
+- no credentials appear in output ✅ (D11 sanitization asserted)
+- successful histories replay deterministically ✅
+- failures identify the earliest useful location ✅
+- `repo` and `status` remain usable without replay infrastructure ✅
+- threat model updated ✅
+- CI integration coverage passes ✅ (replay tests join the existing `postgres-integration` job)
 
 ---
 
