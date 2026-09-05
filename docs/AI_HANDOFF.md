@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-09-04.
+Last reviewed: 2026-09-05.
 
 ## 1. Mission
 
@@ -95,7 +95,19 @@ Open Dependabot PRs as of 2026-09-04: @types/node 26.4.0 merged (#8). commander 
 
 Maintenance run 2026-09-04: no CI failures in repository history (all 60 main + 42 PR runs green); CodeQL green on latest main; local `npm run typecheck`, `npm test` (58 passed), `npm run build`, and `npm pack --dry-run` all pass; no credential leakage found. P1.1 database-row ambiguity tests merged (PR #17).
 
-Weekly maintainer/release review 2026-09-04: no release published — publication is maintainer-gated (D14, `AGENTS.md`, `docs/AUTOMATION.md`) and the automation environment holds no npm publish credentials. All safe preparation is complete (see M2.5 above). Upstream watch: stable `drizzle-orm@0.45.2`/`drizzle-kit@0.31.10` unchanged and still match `docs/COMPATIBILITY.md`; the v1 line (1.0.0-rc.4) is a separate compatibility track (versioned migration table with `name`/`applied_at`, `getMigrationsToRun` name-based skip in the async pg path, `drizzle-kit up` folder migration) — recorded under "Upstream watch" in `docs/COMPATIBILITY.md`, tracked by R2/Q6, not modeled yet. Next highest-value work after M2 publication: M3 (safe clean replay on disposable PostgreSQL); M3 implementation may start on a feature branch per `docs/MILESTONES.md`.
+Weekly maintainer/release review 2026-09-04: no release published — publication is maintainer-gated (D14, `AGENTS.md`, `docs/AUTOMATION.md`) and the automation environment holds no npm publish credentials. All safe preparation is complete (see M2.5 above). Upstream watch: stable `drizzle-orm@0.45.2`/`drizzle-kit@0.31.10` unchanged and still match `docs/COMPATIBILITY.md`; the v1 line (1.0.0-rc.4) is a separate compatibility track (versioned migration table with `name`/`applied_at`, `getMigrationsToRun` name-based skip in the async pg path, `drizzle-kit up` folder migration) — recorded under "Upstream watch" in `docs/COMPATIBILITY.md`, tracked by R2/Q6, not modeled yet.
+
+Maintenance run 2026-09-05: M3 (safe clean replay on disposable PostgreSQL)
+implemented on the thread branch — `replay` command (`src/replay.ts`),
+`REPLAY_MIGRATION_FAILED`/`REPLAY_TARGET_NOT_EMPTY` findings, `replay` report
+section pinned in `docs/OUTPUT_CONTRACT.md`, unit + integration + CLI-guard
+tests (all 82 tests green locally against a real PostgreSQL 16 instance;
+replay integration joins the CI `postgres-integration` job). Isolation model
+chosen and recorded in `docs/DECISIONS.md` Q4: explicitly supplied disposable
+target + `--confirm-destructive`; `replay` never reads `DATABASE_URL`. The
+replay PR is open for review; M2 publication remains the next gate before M4
+(GitHub Action distribution), which still depends on a stable enough
+prerelease.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 

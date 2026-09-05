@@ -97,6 +97,48 @@ it deserve error severity?
 | `MIGRATION_SQL_MISSING` | Broken checkout/folder. | Keep error — deploy would fail at `readMigrationFiles` |
 | `JOURNAL_INDEX_SEQUENCE` | Warning, not error: Drizzle ignores `idx`; non-contiguous indices do not change behavior | warning is correct |
 
+## Replay semantics (M3)
+
+The `replay` command (`src/replay.ts`) models the upstream PostgreSQL migrator
+for execution, with two deliberate diagnostic deviations. Verified against the
+same pinned `drizzle-orm@0.45.2` sources listed above.
+
+### Matches upstream
+
+- creates the migration schema and table if missing, using the same DDL as
+  `PgDialect.migrate` (`CREATE SCHEMA IF NOT EXISTS`, `CREATE TABLE IF NOT
+  EXISTS ... (id serial primary key, hash text not null, created_at bigint)`)
+- splits each migration's SQL on the literal `--> statement-breakpoint`
+  separator, exactly like `readMigrationFiles`
+- executes chunks verbatim with the session's default `search_path` — the
+  migrator does not set `search_path`, so unqualified objects land wherever
+  the session points (typically `public`); replay does the same
+- inserts a `(hash, created_at)` row after each applied migration, matching
+  the migrator's bookkeeping
+- skips nothing on a clean target: every local migration is replayed
+
+### Deliberate deviations (diagnostic, safe because the target is disposable)
+
+1. **Per-migration transactions.** The upstream migrator wraps the whole batch
+   in one transaction and rolls everything back on failure. replay instead
+   commits each migration individually so the first failing migration is
+   precisely identified and the disposable database retains applied state up
+   to the failure. Per-statement results are identical for ordinary DDL/DML
+   histories; exotic session/temp-state dependencies across migrations are
+   the only place behavior could differ.
+2. **Strict-clean target.** replay refuses to start when the migration table
+   already contains rows. A clean replay from zero is only meaningful on a
+   fresh table; skipping already-applied migrations could silently validate a
+   history that never applied end-to-end. Reset the disposable target and
+   re-run to continue after a failure.
+
+### Replay finding mapping
+
+| Finding | Meaning |
+| --- | --- |
+| `REPLAY_MIGRATION_FAILED` | A migration failed to apply; the run stopped at the first failure (tag, breakpoint-chunk index, SQLSTATE, sanitized message). |
+| `REPLAY_TARGET_NOT_EMPTY` | The target's migration table already has rows; nothing was applied. |
+
 ## Raising the pinned upstream version
 
 When a Drizzle release changes migration behavior:

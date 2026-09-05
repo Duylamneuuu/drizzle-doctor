@@ -7,8 +7,9 @@ import { Command, CommanderError } from 'commander';
 
 import { analyzeDatabaseState } from './analyze.js';
 import { readPostgresMigrationState } from './postgres.js';
+import { replayMigrations } from './replay.js';
 import { inspectMigrationRepository } from './repository.js';
-import { createRepoReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
+import { createRepoReport, createReplayReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
 import { redactConnectionString } from './sanitize.js';
 import { hasErrors } from './types.js';
 import type { DatabaseSnapshot } from './types.js';
@@ -25,6 +26,13 @@ interface StatusOptions extends RepoOptions {
   databaseUrl?: string;
   migrationsSchema: string;
   migrationsTable: string;
+}
+
+interface ReplayOptions extends RepoOptions {
+  databaseUrl?: string;
+  migrationsSchema: string;
+  migrationsTable: string;
+  confirmDestructive?: boolean;
 }
 
 function printReport(report: ReturnType<typeof createRepoReport>, json = false): void {
@@ -67,6 +75,45 @@ async function runStatus(options: StatusOptions): Promise<void> {
   printReport(createStatusReport(inspection, database, analysis), Boolean(options.json));
 }
 
+async function runReplay(options: ReplayOptions): Promise<void> {
+  const inspection = await inspectMigrationRepository(options.migrations);
+
+  if (hasErrors(inspection.findings)) {
+    printReport(createRepoReport(inspection, 'replay'), Boolean(options.json));
+    return;
+  }
+
+  // Replay is destructive and must never silently reuse status credentials
+  // (decisions D10/D12): it requires an explicit --database-url and an
+  // affirmative --confirm-destructive flag; DATABASE_URL is never consulted.
+  if (!options.databaseUrl) {
+    throw new Error(
+      'Missing database URL. replay requires an explicit --database-url and never reads DATABASE_URL, because replay applies migrations and must target an explicitly disposable database.',
+    );
+  }
+  if (!options.confirmDestructive) {
+    throw new Error(
+      'Refusing to run replay without --confirm-destructive. replay applies every pending migration to the target database and creates the Drizzle migration schema/table. Point it at an explicitly disposable database.',
+    );
+  }
+
+  let result;
+  try {
+    result = await replayMigrations({
+      connectionString: options.databaseUrl,
+      schema: options.migrationsSchema,
+      table: options.migrationsTable,
+      migrations: inspection.migrations,
+    });
+  } catch (error) {
+    // Never let a driver error echo the connection string or its password
+    // (invariant D11). The original error is preserved as `cause` only.
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(redactConnectionString(rawMessage, options.databaseUrl), { cause: error });
+  }
+  printReport(createReplayReport(inspection, result), Boolean(options.json));
+}
+
 const program = new Command();
 program
   .name('drizzle-doctor')
@@ -92,6 +139,18 @@ program
   .option('--json', 'Emit machine-readable JSON')
   .exitOverride()
   .action(async (options: StatusOptions) => runStatus(options));
+
+program
+  .command('replay')
+  .description('Apply the full migration history from zero on an explicitly disposable PostgreSQL database (destructive; requires --confirm-destructive).')
+  .option('-m, --migrations <dir>', 'Drizzle migrations directory', './drizzle')
+  .option('--database-url <url>', 'PostgreSQL connection URL for the disposable target (required; replay never reads DATABASE_URL)')
+  .option('--migrations-schema <schema>', 'Drizzle migration schema', 'drizzle')
+  .option('--migrations-table <table>', 'Drizzle migration table', '__drizzle_migrations')
+  .option('--confirm-destructive', 'Acknowledge that replay creates the migration schema/table and applies every pending migration to the target')
+  .option('--json', 'Emit machine-readable JSON')
+  .exitOverride()
+  .action(async (options: ReplayOptions) => runReplay(options));
 
 program.command('*', { hidden: true }).argument('[args...]').exitOverride().action((args: string[]) => {
   throw new Error(`unknown command '${args.join(' ')}'`);

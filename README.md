@@ -6,7 +6,7 @@
 
 > Never let Drizzle silently skip a migration again.
 
-`drizzle-doctor` is a read-only CLI for auditing Drizzle migration history before deployment. It checks the migration journal on disk, compares it with PostgreSQL's Drizzle migration table, and flags states that Drizzle's timestamp high-watermark migration logic can skip.
+`drizzle-doctor` is a CLI for auditing Drizzle migration history before deployment. It checks the migration journal on disk, compares it with PostgreSQL's Drizzle migration table, and flags states that Drizzle's timestamp high-watermark migration logic can skip. An opt-in `replay` command additionally proves that the full history applies cleanly from zero on an explicitly disposable PostgreSQL database.
 
 > **Status:** pre-alpha. The repository is being built in public; no npm release has been published yet.
 
@@ -36,9 +36,27 @@ Drizzle's PostgreSQL migrator records a migration `hash` and `created_at`, then 
 - detects database migrations that no longer exist locally
 - distinguishes normal pending migrations from migrations that would be skipped by the current high-watermark state
 
+### Clean replay (opt-in, destructive)
+
+`replay` applies the full local migration history from zero on an explicitly disposable PostgreSQL database, mirroring Drizzle's execution semantics (breakpoint splitting, `hash`/`created_at` bookkeeping rows). It stops at the first failing migration and reports the migration tag and statement that failed.
+
+```bash
+node dist/cli.js replay \
+  --migrations ./drizzle \
+  --database-url 'postgres://...' \
+  --confirm-destructive
+```
+
+Safety rules:
+
+- `replay` never reads `DATABASE_URL`; it requires an explicit `--database-url`
+- it refuses to start without `--confirm-destructive`
+- it refuses targets whose Drizzle migration table already has rows (a clean replay is only meaningful from an empty table)
+- every database error is sanitized; credentials never appear in output
+
 ## Safety
 
-Database inspection is **read-only**. `drizzle-doctor` does not create schemas, apply migrations, rewrite journal files, or modify production data.
+Database inspection (`repo`, `status`) is **read-only**. `drizzle-doctor` does not create schemas, apply migrations, rewrite journal files, or modify production data. `replay` is destructive by definition and is therefore isolated behind an explicit database URL plus `--confirm-destructive`; it must only ever target a disposable database.
 
 ## Development quick start
 
@@ -101,7 +119,7 @@ Finding codes and severities are documented in [`docs/FINDINGS.md`](docs/FINDING
 ## Planned roadmap
 
 - **v0.1:** repository audit + PostgreSQL migration-state audit
-- **v0.2:** clean replay check against ephemeral PostgreSQL
+- **v0.2:** clean replay check against a disposable PostgreSQL database (implemented; pending prerelease)
 - **v0.3:** GitHub Action + PR summary annotations
 - **v0.4:** stronger divergent-history detection and policy configuration
 - **v0.5+:** SQLite/D1, MySQL, Neon/Supabase/Turso-oriented adapters where they add real value

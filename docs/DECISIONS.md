@@ -122,9 +122,14 @@ Evidence: M2.4 output-contract work (`docs/OUTPUT_CONTRACT.md`,
 
 `DATABASE_URL` is conventional. `--database-url` is convenient but may expose secrets in shell history/process lists. Research user workflows before adding more mechanisms.
 
-### Q4 — How should clean replay obtain PostgreSQL?
+### Q4 — How should clean replay obtain PostgreSQL? ✅ resolved (2026-09-05)
 
-Options include tool-managed ephemeral infrastructure or an explicitly supplied disposable database. Choose based on portability, safety and CI usability.
+Chosen: an explicitly supplied disposable target with an affirmative
+destructive-mode flag. `replay` requires an explicit `--database-url` (it
+never reads `DATABASE_URL`) plus `--confirm-destructive`, and refuses to run
+when the target's migration table already has rows.
+
+Evidence: M3 implementation (`src/replay.ts`, `tests/replay.integration.test.ts`). A tool-managed ephemeral database (Docker/spawned postgres) was rejected for portability: it would require Docker or a bundled server binary, contradicting the "low operational complexity" decision principle and making `replay` unusable in many CI environments. The explicit-supply model works anywhere a PostgreSQL URL can be provisioned (CI service containers, ephemeral hosts) and keeps the disposable-target semantics fully explicit (D10).
 
 ### Q5 — What should the first reusable GitHub Action distribution model be?
 

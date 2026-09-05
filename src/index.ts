@@ -1,7 +1,8 @@
 export { analyzeDatabaseState } from './analyze.js';
 export { readPostgresMigrationState } from './postgres.js';
+export { splitChunks, replayMigrations } from './replay.js';
 export { inspectMigrationRepository } from './repository.js';
-export { createRepoReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
+export { createRepoReport, createReplayReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
 export type {
   DatabaseAnalysis,
   DatabaseMigration,
@@ -9,6 +10,9 @@ export type {
   DoctorReport,
   Finding,
   LocalMigration,
+  ReplayBlockedReason,
+  ReplayFailure,
+  ReplayResult,
   RepoInspection,
   Severity,
   StatusSummary,
