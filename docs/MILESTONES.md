@@ -221,9 +221,9 @@ final npm publish / release-tag step requires maintainer authorization.
 
 ---
 
-## M3 — Safe clean replay on disposable PostgreSQL 🚧
+## M3 — Safe clean replay on disposable PostgreSQL ✅
 
-Depends on: M1. Prefer M2 package hardening first, but implementation may begin earlier on a feature branch.
+Delivered and merged 2026-09-05 (PR #21). Depends on: M1. Prefer M2 package hardening first, but implementation may begin earlier on a feature branch.
 
 ### Goal
 
@@ -253,7 +253,7 @@ Replay is **not read-only**, therefore it must be isolated from normal `status` 
   `docs/THREAT_MODEL.md`, `docs/OUTPUT_CONTRACT.md`, `docs/FINDINGS.md`,
   `docs/DECISIONS.md` (Q4) ✅
 
-Remaining for M3 completion: a tool-managed ephemeral-database option is
+M3 completion notes: a tool-managed ephemeral-database option is
 explicitly out of scope (decision Q4); CI integration coverage runs through
 the existing `postgres-integration` job (replay tests join `npm test` when
 `TEST_DATABASE_URL` is set).
