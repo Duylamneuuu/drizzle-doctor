@@ -117,11 +117,17 @@ Useful candidates:
 
 Do not include database host, URL or private identifiers by default.
 
-## P1.6 Improve large-history behavior
+## P1.6 Improve large-history behavior ✅
+
+Delivered (2026-09-06): `tests/scale.test.ts` inspects a synthetic journal of
+2000 migrations and asserts no findings, correct migration count, and a
+generous linear-time bound (guarding against accidental quadratic behavior).
+Measurement: the 2000-migration fixture completes in ~1s locally; no algorithm
+change was needed.
 
 Current histories are normally small, so do not prematurely optimize. Still, add one scale test with a large synthetic journal to catch accidental quadratic behavior or huge output growth.
 
-Measure before changing algorithms.
+Measure before changing algorithms ✅ (measured; no change needed).
 
 ## P1.7 Normalize filesystem/path error UX ✅
 

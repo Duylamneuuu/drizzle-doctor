@@ -118,7 +118,9 @@ be read as `MIGRATION_SQL_UNREADABLE` (no longer an uncaught crash with exit
 `docs/OUTPUT_CONTRACT.md` exit-2 wording clarified accordingly. Tests added
 in `tests/repository.test.ts` and `tests/cli.test.ts` using deterministic
 EISDIR fixtures; `docs/FINDINGS.md`, `CHANGELOG.md`, and
-`docs/IMPROVEMENTS.md` (P1.7 marked delivered) updated. Local typecheck, full
+`docs/IMPROVEMENTS.md` (P1.7 marked delivered) updated. P1.6 large-history
+guard delivered separately (`tests/scale.test.ts`: 2000-migration fixture,
+~1s local, no algorithm change needed). Local typecheck, full
 unit suite, build, and `npm pack --dry-run` green; main CI and CodeQL green.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
