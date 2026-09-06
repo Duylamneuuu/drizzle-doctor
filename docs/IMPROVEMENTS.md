@@ -123,17 +123,25 @@ Current histories are normally small, so do not prematurely optimize. Still, add
 
 Measure before changing algorithms.
 
-## P1.7 Normalize filesystem/path error UX
+## P1.7 Normalize filesystem/path error UX ✅
+
+Delivered (2026-09-06): `inspectMigrationRepository` now distinguishes a
+missing journal (`REPO_JOURNAL_MISSING`) from a journal that exists but cannot
+be read (`REPO_JOURNAL_UNREADABLE`) instead of misreporting read failures as
+invalid JSON, and a referenced SQL file that exists but cannot be read is a
+finding (`MIGRATION_SQL_UNREADABLE`, exit `1`) rather than an uncaught
+operational crash (exit `2`). All filesystem read paths produce concise
+findings with hints; no internal stack traces reach stderr.
 
 Improve messages for:
 
-- migration directory missing
-- journal missing
-- journal not readable
-- referenced SQL unreadable
-- permission errors
+- migration directory missing ✅ (journal-missing finding, exit `1`)
+- journal missing ✅ (`REPO_JOURNAL_MISSING`)
+- journal not readable ✅ (`REPO_JOURNAL_UNREADABLE`)
+- referenced SQL unreadable ✅ (`MIGRATION_SQL_UNREADABLE`)
+- permission errors ✅ (covered by the unreadable findings above and `MIGRATIONS_DIR_UNREADABLE`)
 
-Output should be concise and should not dump internal stack traces by default.
+Output should be concise and should not dump internal stack traces by default ✅.
 
 ## P1.8 Add an explicit debug mode only if needed
 

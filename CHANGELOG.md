@@ -49,3 +49,12 @@ tarball verified). Publication itself requires maintainer authorization
   `tests/output-contract.test.ts`, unit/integration coverage in
   `tests/replay.test.ts` and `tests/replay.integration.test.ts`, and CLI
   safety guards in `tests/cli.test.ts`.
+- filesystem/path error UX (P1.7): new findings `REPO_JOURNAL_UNREADABLE`
+  (journal exists but cannot be read, e.g. permissions or not a regular file)
+  and `MIGRATION_SQL_UNREADABLE` (referenced SQL file exists but cannot be
+  read). Previously an unreadable journal was misreported as
+  `REPO_JOURNAL_INVALID_JSON`, and an unreadable SQL file crashed the CLI with
+  exit `2` and no report instead of producing an error finding with exit `1`.
+  Unreadable local migration input is now always a finding with a hint;
+  `docs/OUTPUT_CONTRACT.md` clarifies that exit `2` is reserved for failures
+  that prevent any report from being produced.

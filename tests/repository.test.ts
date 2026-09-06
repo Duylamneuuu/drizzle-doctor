@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { inspectMigrationRepository } from '../src/repository.js';
+import { hasErrors } from '../src/types.js';
 
 const tempDirs: string[] = [];
 
@@ -85,5 +86,39 @@ describe('inspectMigrationRepository', () => {
 
     expect(result.orphanSqlFiles).toEqual(['9999_orphan.sql']);
     expect(result.findings.some((item) => item.code === 'ORPHAN_SQL_FILE')).toBe(true);
+  });
+
+  it('reports an unreadable journal as REPO_JOURNAL_UNREADABLE, not as invalid JSON', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const migrationsDir = path.join(root, 'drizzle');
+    await mkdir(path.join(migrationsDir, 'meta'), { recursive: true });
+    // A directory in place of the journal file makes readFile throw
+    // deterministically (EISDIR) without depending on process permissions.
+    await mkdir(path.join(migrationsDir, 'meta', '_journal.json'));
+
+    const result = await inspectMigrationRepository(migrationsDir);
+
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.code).toBe('REPO_JOURNAL_UNREADABLE');
+    expect(result.findings[0]?.severity).toBe('error');
+    expect(result.findings.some((item) => item.code === 'REPO_JOURNAL_INVALID_JSON')).toBe(false);
+    expect(hasErrors(result.findings)).toBe(true);
+  });
+
+  it('reports a referenced SQL file that exists but cannot be read', async () => {
+    const migrationsDir = await fixture(
+      [{ idx: 0, when: 1000, tag: '0000_dir', breakpoints: true }],
+      {},
+    );
+    // A directory in place of the SQL file makes readFile throw
+    // deterministically (EISDIR) without depending on process permissions.
+    await mkdir(path.join(migrationsDir, '0000_dir.sql'));
+
+    const result = await inspectMigrationRepository(migrationsDir);
+
+    expect(result.migrations).toEqual([]);
+    expect(result.findings.some((item) => item.code === 'MIGRATION_SQL_UNREADABLE')).toBe(true);
+    expect(hasErrors(result.findings)).toBe(true);
   });
 });
