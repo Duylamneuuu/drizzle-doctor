@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-09-05.
+Last reviewed: 2026-09-06.
 
 ## 1. Mission
 
@@ -108,6 +108,20 @@ target + `--confirm-destructive`; `replay` never reads `DATABASE_URL`. M3 merged
 2026-09-05 (PR #21, squash `ebea403`); issue #2 closed as completed. M2
 publication remains the next gate before M4 (GitHub Action distribution), which
 still depends on a stable enough prerelease.
+
+Maintenance run 2026-09-06: P1.7 filesystem/path error UX delivered —
+`inspectMigrationRepository` now reports a journal that exists but cannot be
+read as `REPO_JOURNAL_UNREADABLE` (no longer misreported as
+`REPO_JOURNAL_INVALID_JSON`) and a referenced SQL file that exists but cannot
+be read as `MIGRATION_SQL_UNREADABLE` (no longer an uncaught crash with exit
+2). Unreadable migration input is always a finding with a hint and exit 1;
+`docs/OUTPUT_CONTRACT.md` exit-2 wording clarified accordingly. Tests added
+in `tests/repository.test.ts` and `tests/cli.test.ts` using deterministic
+EISDIR fixtures; `docs/FINDINGS.md`, `CHANGELOG.md`, and
+`docs/IMPROVEMENTS.md` (P1.7 marked delivered) updated. P1.6 large-history
+guard delivered separately (`tests/scale.test.ts`: 2000-migration fixture,
+~1s local, no algorithm change needed). Local typecheck, full
+unit suite, build, and `npm pack --dry-run` green; main CI and CodeQL green.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 

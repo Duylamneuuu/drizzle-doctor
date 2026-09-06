@@ -15,7 +15,14 @@ surfaces.
 | --- | --- |
 | `0` | The command completed and found **no error-level findings** (`ok: true`). |
 | `1` | The command completed and found **at least one error-level finding** (`ok: false`). |
-| `2` | The command **could not complete**: invalid arguments, unreadable input, missing database URL, connection failure, or another operational error. No report is emitted on stdout. |
+| `2` | The command **could not complete**: invalid arguments, missing database URL, connection failure, or another operational error. No report is emitted on stdout. |
+
+Unreadable local migration input (a journal or SQL file that exists but cannot
+be read, or a migration directory that cannot be listed) is reported as an
+error finding (`REPO_JOURNAL_UNREADABLE`, `MIGRATION_SQL_UNREADABLE`,
+`MIGRATIONS_DIR_UNREADABLE`) with a normal report and exit `1`, because the
+tool can still describe what it observed. Only failures that prevent any
+report from being produced use exit `2`.
 
 Relationship to `ok`:
 

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { access, readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { Finding, LocalMigration, RepoInspection } from './types.js';
@@ -25,13 +25,9 @@ function finding(
   return { code, severity, message, ...(hint ? { hint } : {}), ...(details ? { details } : {}) };
 }
 
-async function exists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+/** True when the error is a missing-file error (ENOENT). */
+function isMissingFile(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'ENOENT';
 }
 
 function parseEntry(value: unknown, position: number): JournalEntry | null {
@@ -58,21 +54,36 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
   const migrations: LocalMigration[] = [];
   const orphanSqlFiles: string[] = [];
 
-  if (!(await exists(journalPath))) {
-    findings.push(
-      finding(
-        'REPO_JOURNAL_MISSING',
-        'error',
-        `Drizzle journal not found at ${journalPath}.`,
-        'Point --migrations at the directory that contains meta/_journal.json.',
-      ),
-    );
+  let rawJournal: string;
+  try {
+    rawJournal = await readFile(journalPath, 'utf8');
+  } catch (error) {
+    if (isMissingFile(error)) {
+      findings.push(
+        finding(
+          'REPO_JOURNAL_MISSING',
+          'error',
+          `Drizzle journal not found at ${journalPath}.`,
+          'Point --migrations at the directory that contains meta/_journal.json.',
+        ),
+      );
+    } else {
+      findings.push(
+        finding(
+          'REPO_JOURNAL_UNREADABLE',
+          'error',
+          `Drizzle journal exists but could not be read at ${journalPath}.`,
+          'Check file permissions and that the path is a regular file.',
+          { error: error instanceof Error ? error.message : String(error) },
+        ),
+      );
+    }
     return { migrationsDir, journalPath, migrations, orphanSqlFiles, findings };
   }
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(await readFile(journalPath, 'utf8'));
+    parsed = JSON.parse(rawJournal);
   } catch (error) {
     findings.push(
       finding(
@@ -176,20 +187,33 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
     }
 
     const sqlPath = path.join(migrationsDir, `${entry.tag}.sql`);
-    if (!(await exists(sqlPath))) {
-      findings.push(
-        finding(
-          'MIGRATION_SQL_MISSING',
-          'error',
-          `Journal entry ${entry.tag} references a missing SQL file.`,
-          `Expected ${sqlPath}.`,
-          { tag: entry.tag, sqlPath },
-        ),
-      );
+    let sql: string;
+    try {
+      sql = await readFile(sqlPath, 'utf8');
+    } catch (error) {
+      if (isMissingFile(error)) {
+        findings.push(
+          finding(
+            'MIGRATION_SQL_MISSING',
+            'error',
+            `Journal entry ${entry.tag} references a missing SQL file.`,
+            `Expected ${sqlPath}.`,
+            { tag: entry.tag, sqlPath },
+          ),
+        );
+      } else {
+        findings.push(
+          finding(
+            'MIGRATION_SQL_UNREADABLE',
+            'error',
+            `Journal entry ${entry.tag} references a SQL file that exists but could not be read.`,
+            'Check file permissions and that the file is a regular file.',
+            { tag: entry.tag, sqlPath, error: error instanceof Error ? error.message : String(error) },
+          ),
+        );
+      }
       continue;
     }
-
-    const sql = await readFile(sqlPath, 'utf8');
     migrations.push({
       ...entry,
       sqlPath,

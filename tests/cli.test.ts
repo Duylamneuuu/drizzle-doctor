@@ -109,6 +109,48 @@ describe('cli exit behavior', () => {
     expect(report.findings.some((finding) => finding.code === 'REPO_JOURNAL_MISSING')).toBe(true);
   });
 
+  it('unreadable journal is a finding (exit 1), not an invalid-JSON misreport', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const migrationsDir = path.join(root, 'drizzle');
+    await mkdir(path.join(migrationsDir, 'meta'), { recursive: true });
+    // A directory in place of the journal file makes readFile throw
+    // deterministically (EISDIR) without depending on process permissions.
+    await mkdir(path.join(migrationsDir, 'meta', '_journal.json'));
+
+    const { code, stdout } = await run(['repo', '--migrations', migrationsDir]);
+    expect(code).toBe(1);
+    expect(stdout).toContain('ERROR [REPO_JOURNAL_UNREADABLE]');
+    expect(stdout).not.toContain('REPO_JOURNAL_INVALID_JSON');
+  });
+
+  it('unreadable referenced SQL file is a finding (exit 1), not an operational crash (exit 2)', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      {},
+    );
+    await mkdir(path.join(dir, '0000_first.sql'));
+
+    const { code, stdout, stderr } = await run(['repo', '--migrations', dir]);
+    expect(code).toBe(1);
+    expect(stdout).toContain('ERROR [MIGRATION_SQL_UNREADABLE]');
+    expect(stderr).toBe('');
+  });
+
+  it('unreadable input in JSON mode reports ok=false with the finding code', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const migrationsDir = path.join(root, 'drizzle');
+    await mkdir(path.join(migrationsDir, 'meta'), { recursive: true });
+    await mkdir(path.join(migrationsDir, 'meta', '_journal.json'));
+
+    const { code, stdout } = await run(['repo', '--migrations', migrationsDir, '--json']);
+    expect(code).toBe(1);
+    const report = JSON.parse(stdout) as { ok: boolean; findings: Array<{ code: string }> };
+    expect(report.ok).toBe(false);
+    expect(report.findings.some((finding) => finding.code === 'REPO_JOURNAL_UNREADABLE')).toBe(true);
+  });
+
   it('unknown command exits 2, not 1', async () => {
     const { code, stderr } = await run(['frobnicate']);
     expect(code).toBe(2);

@@ -7,6 +7,7 @@ Finding codes are intended to become stable machine-readable identifiers once th
 | Code | Severity | Meaning |
 | --- | --- | --- |
 | `REPO_JOURNAL_MISSING` | error | `meta/_journal.json` was not found. |
+| `REPO_JOURNAL_UNREADABLE` | error | `meta/_journal.json` exists but could not be read (permissions, not a regular file). |
 | `REPO_JOURNAL_INVALID_JSON` | error | The journal could not be parsed as JSON. |
 | `REPO_JOURNAL_INVALID_SHAPE` | error | The journal does not contain the expected `entries` array. |
 | `JOURNAL_ENTRY_INVALID` | error | An entry is missing required Drizzle metadata. |
@@ -16,6 +17,7 @@ Finding codes are intended to become stable machine-readable identifiers once th
 | `JOURNAL_INDEX_SEQUENCE` | warning | Journal position and `idx` are not the normal contiguous sequence. |
 | `JOURNAL_TIMESTAMP_ORDER` | error | A later journal entry has a non-increasing timestamp. |
 | `MIGRATION_SQL_MISSING` | error | A journal entry references a missing SQL file. |
+| `MIGRATION_SQL_UNREADABLE` | error | A journal entry references a SQL file that exists but could not be read. |
 | `MIGRATIONS_DIR_UNREADABLE` | error | The migration directory could not be listed. |
 | `ORPHAN_SQL_FILE` | warning | A root migration SQL file is not referenced by the journal. |
 
