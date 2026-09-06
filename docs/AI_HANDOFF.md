@@ -123,6 +123,22 @@ guard delivered separately (`tests/scale.test.ts`: 2000-migration fixture,
 ~1s local, no algorithm change needed). Local typecheck, full
 unit suite, build, and `npm pack --dry-run` green; main CI and CodeQL green.
 
+Maintenance run 2026-09-06 (daily maintainer, follow-up): PR #23 (P1.7/P1.6)
+merged to main as squash `be47f3d` — all required checks green (Node 20/22,
+postgres integration, package smoke, CodeQL). Local verification on the new
+main head: typecheck, 78 unit tests passed (11 skipped — DB integration
+needs `TEST_DATABASE_URL`), build, and `npm audit --omit=dev` (0
+vulnerabilities) all green; no credential leakage found (only 127.0.0.1 test
+fixtures); all 56 PR-event CI runs in repository history green; CodeQL green
+on latest main. Dependabot: commander 15 (#7) and typescript 7.0.2 (#10)
+remain open with maintainer-deferred decisions recorded on the PRs; no change
+this run. Issues: #5 and #18 are duplicate "release: prepare first npm
+prerelease" tracking issues (both open; #18 carries the current M2 status) —
+recommend closing #5 as the duplicate; the automation environment has no
+issue-close capability, so this is a maintainer action. Issue #3 (GitHub
+Action distribution, M4) remains queued behind the M2 publish decision.
+No release published (maintainer-gated).
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
