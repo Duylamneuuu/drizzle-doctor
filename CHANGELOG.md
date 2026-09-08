@@ -38,6 +38,15 @@ tarball verified). Publication itself requires maintainer authorization
 
 ### Added
 
+- finding-code registry (P1.11): `FINDING_CODES` and `FINDING_SEVERITIES` in
+  `src/types.ts` (also exported from the library entry) are the single
+  machine-readable source of truth for all 22 finding codes and their default
+  severities. `tests/findings-registry.test.ts` pins the registry against the
+  `docs/FINDINGS.md` table and against every code the implementation emits, so
+  a rename, silent severity change, undocumented new code, or doc drift fails
+  loudly. `docs/FINDINGS.md` records the registry as the compatibility source
+  of truth.
+
 - `replay` command (M3): applies the full local migration history from zero on
   an explicitly disposable PostgreSQL database. Requires an explicit
   `--database-url` (never reads `DATABASE_URL`) and `--confirm-destructive`,

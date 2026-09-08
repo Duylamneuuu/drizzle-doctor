@@ -41,6 +41,12 @@ Finding codes are intended to become stable machine-readable identifiers once th
 
 ## Compatibility policy
 
+The machine-readable registry lives in code: `FINDING_CODES` and
+`FINDING_SEVERITIES` in `src/types.ts`, pinned by
+`tests/findings-registry.test.ts` against this table and against every code
+the implementation emits. Adding a finding means adding its code here, in the
+registry, and in that test in the same change.
+
 - New codes may be added in minor releases.
 - Existing codes should not change meaning silently.
 - Removing/renaming a published code is a breaking change unless an alias/deprecation period is provided.
