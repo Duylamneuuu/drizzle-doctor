@@ -193,7 +193,17 @@ Before SQLite/MySQL support, define the minimum interface around:
 
 Do not build an abstraction framework prematurely. Extract only what a second real adapter demonstrates is shared.
 
-## P1.11 Treat finding codes as a registry
+## P1.11 Treat finding codes as a registry ✅
+
+Delivered (2026-09-08): `FINDING_CODES` (all 22 codes) and
+`FINDING_SEVERITIES` in `src/types.ts` are the machine-readable single source
+of truth (also exported from the library entry), pinned by
+`tests/findings-registry.test.ts` against the `docs/FINDINGS.md` table
+(codes + severities) and against every code literal the implementation emits
+(`src/repository.ts`, `src/analyze.ts`, `src/report.ts`). A rename, silent
+severity change, undocumented new code, or doc drift now fails loudly instead
+of drifting. `docs/FINDINGS.md` records the registry as the compatibility
+source of truth.
 
 Continue documenting each finding in `docs/FINDINGS.md` with:
 
