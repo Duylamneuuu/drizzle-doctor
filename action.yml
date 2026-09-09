@@ -36,10 +36,11 @@ runs:
   steps:
     # Pinned to immutable SHAs per P1.12 (release-distribution surface).
     # Update process: see docs/ACTION.md ("Dependency pinning").
+    # Node 22 tracks .node-version: bump both together (see docs/ACTION.md).
     - name: Set up Node
       uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
       with:
-        node-version-file: ${{ github.action_path }}/.node-version
+        node-version: '22'
 
     - name: Install and build drizzle-doctor from the action checkout
       shell: bash

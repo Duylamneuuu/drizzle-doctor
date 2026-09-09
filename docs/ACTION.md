@@ -137,6 +137,11 @@ with the release tag kept as a trailing comment (e.g.
 Currently pinned:
 
 - `actions/setup-node@v7` → `820762786026740c76f36085b0efc47a31fe5020`
+- Node runtime `22` (see `.node-version`) is passed as `node-version` to
+  `actions/setup-node`, not via `node-version-file`: `github.action_path`
+  does not resolve inside that input in composite actions. When bumping the
+  Node version, update `.node-version` and the `node-version` input together
+  and re-run the smoke workflow.
 
 Resolved 2026-09-09 for future use (example workflows, release tooling):
 
