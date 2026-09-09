@@ -38,6 +38,17 @@ tarball verified). Publication itself requires maintainer authorization
 
 ### Added
 
+- GitHub Action (M4, unreleased — no release/tag published): composite
+  `action.yml` wrapping `repo`/`status` (read-only; replay excluded),
+  SHA-pinned `actions/setup-node` (P1.12), `::add-mask::` + env-only secret
+  handling with no `--database-url` flag in the process listing (D11),
+  job summary + `::error` annotations rendered by the internal
+  `src/action-summary.ts` module (pinned by
+  `tests/action-summary.test.ts`), `ok` output + CLI exit-code verdict,
+  operator guide `docs/ACTION.md` (versioning, pinning update process,
+  tested least-privilege `GRANT` recipe — P1.13), and CI smoke coverage in
+  `.github/workflows/action-smoke.yml` exercising the action in-repo in
+  both modes.
 - finding-code registry (P1.11): `FINDING_CODES` and `FINDING_SEVERITIES` in
   `src/types.ts` (also exported from the library entry) are the single
   machine-readable source of truth for all 22 finding codes and their default
