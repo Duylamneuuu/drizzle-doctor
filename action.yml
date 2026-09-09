@@ -60,7 +60,12 @@ runs:
         # CLI sanitizes driver errors and the report contains no URL).
         DATABASE_URL: ${{ inputs.database-url }}
       run: |
-        set -uo pipefail
+        # NOTE: the runner invokes bash with `-e` (errexit) on the command
+        # line, so `set -uo pipefail` alone does NOT disable it — without the
+        # explicit `set +e` below, a findings exit (1) from the CLI would fail
+        # this step before the exit code is recorded, skipping the summary
+        # step and leaving the `ok` output unset.
+        set -u +e -o pipefail
         mode='${{ inputs.mode }}'
         if [ "$mode" != 'repo' ] && [ "$mode" != 'status' ]; then
           echo "drizzle-doctor: unsupported mode '$mode' (expected 'repo' or 'status')" >&2

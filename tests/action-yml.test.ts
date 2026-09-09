@@ -26,3 +26,15 @@ describe("action.yml Node setup", () => {
     expect(actionYml).toContain(`node-version: '${nodeVersion}'`);
   });
 });
+
+describe("action.yml audit step", () => {
+  it("disables errexit so finding exits still record their code and publish the summary", () => {
+    // The runner invokes bash with -e, so `set -uo pipefail` alone would fail
+    // the audit step on a findings exit (1) before `exit=$?` is recorded —
+    // skipping the summary step and leaving the `ok` output unset.
+    const auditStep = actionYml.slice(
+      actionYml.indexOf("Run audit (report first, verdict later)"),
+    );
+    expect(auditStep).toContain("set -u +e -o pipefail");
+  });
+});
