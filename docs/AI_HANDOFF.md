@@ -139,6 +139,23 @@ issue-close capability, so this is a maintainer action. Issue #3 (GitHub
 Action distribution, M4) remains queued behind the M2 publish decision.
 No release published (maintainer-gated).
 
+Maintenance run 2026-09-10: PR #27 (@types/node 26.4.0 → 26.4.1) merged as
+squash `ec7b892`; main CI and CodeQL green on the new head. Thread branch
+rebased onto `ec7b892`; local typecheck, 87 unit tests passed (11 skipped —
+DB integration needs `TEST_DATABASE_URL`), build, and `npm pack --dry-run`
+all green. PR #26 (M4 Action) has all checks green but is still in draft
+state, so the GitHub API rejects merges (405); review comment left
+documenting readiness pending a maintainer un-draft. PR #28 (vitest 4 → 5):
+new finding — `npm view vitest@5.0.0 engines` declares
+`node: ^22.12.0 || ^24.0.0 || >=26.0.0`, conflicting with locked D9 (Node 20
+floor); must not merge while Node 20 is supported — review comment left
+recommending closure (same category as commander 15, PR #7). PR #7 (commander
+15) remains blocked on D9 (engines `node >=22.12.0`); PR #10 (typescript 7)
+has no engines conflict (devDependency only, `node >=16.20.0`) but stays held
+open per the maintainer's recorded toolchain-major deferral. M2 stays 🚧
+solely for the maintainer-authorized publish step (D14); no release
+published (maintainer-gated).
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
