@@ -67,3 +67,10 @@ tarball verified). Publication itself requires maintainer authorization
   Unreadable local migration input is now always a finding with a hint;
   `docs/OUTPUT_CONTRACT.md` clarifies that exit `2` is reserved for failures
   that prevent any report from being produced.
+- actionable finding hints (P1.2) and missing-table limitation (P1.4): every
+  finding the tool emits now carries a `hint` (what to inspect next), and the
+  `DATABASE_MIGRATIONS_TABLE_MISSING` hint documents that a missing table
+  reports only the absence of Drizzle migration metadata, not that the
+  database itself is empty. Pinned by `tests/finding-hints.test.ts`. Hint
+  contents remain provisional per `docs/OUTPUT_CONTRACT.md`; no finding code,
+  severity, or report shape changed.

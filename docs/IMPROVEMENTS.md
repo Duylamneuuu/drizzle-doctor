@@ -72,7 +72,18 @@ asserted).
 
 Why: real migration tables can contain manually modified or historically odd states.
 
-## P1.2 Make diagnostics more actionable without becoming prescriptive
+## P1.2 Make diagnostics more actionable without becoming prescriptive ✅
+
+Delivered (2026-09-11): every finding the tool emits now carries a short
+stable `hint` (what to inspect next, not a repair prescription), pinned by
+`tests/finding-hints.test.ts`. Previously only replay findings and most
+(but not all) repository/analyzer findings had hints; the four hint-less
+codes (`REPO_JOURNAL_INVALID_SHAPE`, `JOURNAL_DUPLICATE_INDEX`,
+`JOURNAL_DUPLICATE_TAG`, `MIGRATIONS_DIR_UNREADABLE`) gained one. The
+`DATABASE_MIGRATIONS_TABLE_MISSING` hint also carries the P1.4 limitation
+(a missing table does not prove the database itself is empty). Hint
+contents remain provisional per `docs/OUTPUT_CONTRACT.md`; no finding code,
+severity, or report shape changed.
 
 For each finding, review whether its message answers:
 
@@ -98,7 +109,19 @@ Test user-facing command behavior, not only internal functions:
 
 Keep snapshots selective; assert semantics rather than freezing irrelevant whitespace everywhere.
 
-## P1.4 Clarify missing-table semantics
+## P1.4 Clarify missing-table semantics ✅
+
+Delivered (2026-09-11) alongside P1.2: verified against the pinned upstream
+`PgDialect.migrate` (`node_modules/drizzle-orm/pg-core/dialect.js` — `CREATE
+SCHEMA/TABLE IF NOT EXISTS`, then a single-row high-watermark select, then
+apply-everything when the table was just created), matching the existing
+`docs/COMPATIBILITY.md` model ("First deploy state; Drizzle would create the
+table and apply everything"). The `DATABASE_MIGRATIONS_TABLE_MISSING` hint
+now states the limitation explicitly: a missing table reports only that no
+Drizzle migration metadata table was found at the configured location — it
+does not prove the database itself is empty or safe. Pinned by
+`tests/finding-hints.test.ts`; severity stays `info` and all local
+migrations are still counted as pending.
 
 A missing migration table is currently informational and all local migrations are considered pending.
 
