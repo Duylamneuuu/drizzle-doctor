@@ -1,0 +1,147 @@
+name: 'drizzle-doctor'
+description: 'Read-only Drizzle migration integrity and state audit (repo or status modes).'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  mode:
+    description: "'repo' audits the local migration journal/SQL without secrets; 'status' additionally compares against PostgreSQL (needs database-url)."
+    required: false
+    default: 'repo'
+  migrations:
+    description: 'Drizzle migrations directory.'
+    required: false
+    default: './drizzle'
+  migrations-schema:
+    description: 'Drizzle migration schema (status mode).'
+    required: false
+    default: 'drizzle'
+  migrations-table:
+    description: 'Drizzle migration table (status mode).'
+    required: false
+    default: '__drizzle_migrations'
+  database-url:
+    description: "PostgreSQL connection URL for status mode. Pass a secret; it is only mapped through the step environment and never printed. Not needed for repo mode."
+    required: false
+    default: ''
+
+outputs:
+  ok:
+    description: "'true' when the audit completed with no error-level findings; 'false' otherwise (including when the audit could not complete)."
+    value: ${{ steps.summary.outputs.ok }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Pinned to immutable SHAs per P1.12 (release-distribution surface).
+    # Update process: see docs/ACTION.md ("Dependency pinning").
+    # Node 22 tracks .node-version: bump both together (see docs/ACTION.md).
+    - name: Set up Node
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      with:
+        node-version: '22'
+
+    - name: Install and build drizzle-doctor from the action checkout
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        npm ci --no-audit --no-fund
+        npm run build
+
+    - name: Run audit (report first, verdict later)
+      id: audit
+      shell: bash
+      env:
+        # The secret input travels only through the environment: it is never
+        # interpolated into the script text, never passed as a CLI flag (which
+        # would expose it in process listings), and never printed (D11 — the
+        # CLI sanitizes driver errors and the report contains no URL).
+        DATABASE_URL: ${{ inputs.database-url }}
+      run: |
+        # NOTE: the runner invokes bash with `-e` (errexit) on the command
+        # line, so `set -uo pipefail` alone does NOT disable it — without the
+        # explicit `set +e` below, a findings exit (1) from the CLI would fail
+        # this step before the exit code is recorded, skipping the summary
+        # step and leaving the `ok` output unset.
+        set -u +e -o pipefail
+        mode='${{ inputs.mode }}'
+        if [ "$mode" != 'repo' ] && [ "$mode" != 'status' ]; then
+          echo "drizzle-doctor: unsupported mode '$mode' (expected 'repo' or 'status')" >&2
+          echo 'exit=2' >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ -n "${DATABASE_URL:-}" ]; then
+          echo "::add-mask::$DATABASE_URL"
+        fi
+        args=("$mode" --migrations '${{ inputs.migrations }}')
+        if [ "$mode" = 'status' ]; then
+          args+=(--migrations-schema '${{ inputs.migrations-schema }}' --migrations-table '${{ inputs.migrations-table }}')
+        fi
+        # status reads the URL from DATABASE_URL (set from the secret input
+        # via the step environment above); the CLI --database-url flag is
+        # deliberately not used here so the secret never appears in the
+        # process listing.
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}" --json > "$RUNNER_TEMP/drizzle-doctor-report.json"
+        echo "exit=$?" >> "$GITHUB_OUTPUT"
+        exit 0
+
+    - name: Publish summary and annotations
+      id: summary
+      shell: bash
+      run: |
+        set -euo pipefail
+        script="$RUNNER_TEMP/drizzle-doctor-summary.mjs"
+        cat > "$script" <<'SCRIPT_EOF'
+        import { appendFileSync, readFileSync } from 'node:fs';
+        import process from 'node:process';
+        // Rendering semantics are defined by src/action-summary.ts and pinned
+        // by tests/action-summary.test.ts. That module is internal to the
+        // action's source checkout (imported by path from dist/, not through
+        // the published library entry); this glue only handles files/env.
+        const helpers = await import(`file://${process.env.ACTION_PATH}/dist/action-summary.js`);
+        let report = null;
+        try {
+          report = JSON.parse(readFileSync(process.env.REPORT_PATH, 'utf8'));
+        } catch {
+          report = null;
+        }
+        const summaryFile = process.env.GITHUB_STEP_SUMMARY ?? '';
+        const outputFile = process.env.GITHUB_OUTPUT ?? '';
+        if (report) {
+          const summary = helpers.renderActionSummary(report);
+          if (summaryFile) appendFileSync(summaryFile, summary);
+          else process.stdout.write(summary);
+          for (const finding of report.findings) {
+            process.stdout.write(`${finding.severity.toUpperCase()} [${finding.code}] ${finding.message}\n`);
+          }
+          for (const finding of report.findings
+            .filter((f) => f.severity === 'error')
+            .slice(0, helpers.ACTION_MAX_ANNOTATIONS)) {
+            process.stdout.write(`${helpers.actionAnnotationFor(finding)}\n`);
+          }
+          if (outputFile) appendFileSync(outputFile, `ok=${report.ok ? 'true' : 'false'}\n`);
+        } else {
+          const fallback =
+            `## drizzle-doctor — could not complete ❌\n\n` +
+            `The audit step produced no report (exit ${process.env.AUDIT_EXIT || 'unknown'}). ` +
+            `See the audit step log for the sanitized error.\n`;
+          if (summaryFile) appendFileSync(summaryFile, fallback);
+          else process.stdout.write(fallback);
+          if (outputFile) appendFileSync(outputFile, 'ok=false\n');
+        }
+        SCRIPT_EOF
+        ACTION_PATH="$GITHUB_ACTION_PATH" \
+          REPORT_PATH="$RUNNER_TEMP/drizzle-doctor-report.json" \
+          AUDIT_EXIT='${{ steps.audit.outputs.exit }}' \
+          node "$script"
+
+    - name: Report audit result
+      shell: bash
+      run: |
+        code='${{ steps.audit.outputs.exit }}'
+        if [ "$code" != '0' ]; then
+          echo "drizzle-doctor: audit exit $code — see the job summary and annotations above." >&2
+        fi
+        exit "$code"

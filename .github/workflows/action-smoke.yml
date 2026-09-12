@@ -1,0 +1,125 @@
+# Action smoke test (M4)
+#
+# Exercises the composite action in-repo (uses: ./) in both modes:
+# - repo mode needs no secrets and must pass against a clean fixture
+#   migrations directory (exit 0, ok output 'true')
+# - repo mode must fail visibly (exit 1, ok output 'false') against a
+#   broken fixture (missing SQL file)
+# - status mode runs against the postgres service container with an
+#   unprivileged URL passed as an input (mirroring secrets usage without
+#   storing a real secret)
+#
+# This workflow only tests the Action; it must stay read-only (no replay)
+# and keep permissions minimal (contents: read only).
+
+name: Action smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'action.yml'
+      - 'src/action-summary.ts'
+      - 'src/**'
+      - 'tests/action-summary.test.ts'
+      - '.github/workflows/action-smoke.yml'
+  pull_request:
+    paths:
+      - 'action.yml'
+      - 'src/action-summary.ts'
+      - 'src/**'
+      - 'tests/action-summary.test.ts'
+      - '.github/workflows/action-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  action-repo-mode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build a clean fixture migrations directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/action-smoke-clean .tmp/action-smoke-broken
+          mkdir -p .tmp/action-smoke-clean/drizzle/meta .tmp/action-smoke-broken/drizzle/meta
+          printf '%s\n' '{"entries":[{"idx":0,"when":1000,"tag":"0000_first","breakpoints":true}]}' > .tmp/action-smoke-clean/drizzle/meta/_journal.json
+          printf '%s\n' 'select 1;' > .tmp/action-smoke-clean/drizzle/0000_first.sql
+          printf '%s\n' '{"entries":[{"idx":0,"when":1000,"tag":"0000_first","breakpoints":true}]}' > .tmp/action-smoke-broken/drizzle/meta/_journal.json
+
+      - name: repo mode passes on a clean history (no secrets)
+        id: clean
+        uses: ./
+        with:
+          mode: repo
+          migrations: .tmp/action-smoke-clean/drizzle
+
+      - name: Assert the clean run reported ok
+        shell: bash
+        run: |
+          test '${{ steps.clean.outputs.ok }}' = 'true'
+
+      - name: repo mode fails visibly on a broken history
+        id: broken
+        continue-on-error: true
+        uses: ./
+        with:
+          mode: repo
+          migrations: .tmp/action-smoke-broken/drizzle
+
+      - name: Assert the broken run reported not-ok
+        shell: bash
+        run: |
+          test '${{ steps.broken.outputs.ok }}' = 'false'
+
+  action-status-mode:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: doctor
+          POSTGRES_PASSWORD: doctor
+          POSTGRES_DB: doctor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U doctor -d doctor"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Seed fixture migrations and a matching database row
+        shell: bash
+        env:
+          PGPASSWORD: doctor
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/action-smoke-status
+          mkdir -p .tmp/action-smoke-status/drizzle/meta
+          printf '%s\n' '{"entries":[{"idx":0,"when":1000,"tag":"0000_first","breakpoints":true}]}' > .tmp/action-smoke-status/drizzle/meta/_journal.json
+          printf '%s\n' 'select 1;' > .tmp/action-smoke-status/drizzle/0000_first.sql
+          hash="$(node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync('.tmp/action-smoke-status/drizzle/0000_first.sql')).digest('hex'))")"
+          psql -h 127.0.0.1 -U doctor -d doctor -v ON_ERROR_STOP=1 \
+            -c 'create schema if not exists drizzle' \
+            -c 'drop table if exists drizzle.__drizzle_migrations' \
+            -c 'create table drizzle.__drizzle_migrations (id serial primary key, hash text not null, created_at bigint)' \
+            -c "insert into drizzle.__drizzle_migrations (hash, created_at) values ('$hash', 1000)"
+
+      - name: status mode against the service container (read-only URL as input)
+        id: status
+        uses: ./
+        with:
+          mode: status
+          migrations: .tmp/action-smoke-status/drizzle
+          database-url: postgresql://doctor:doctor@127.0.0.1:5432/doctor
+
+      - name: Assert the status run reported ok
+        shell: bash
+        run: |
+          test '${{ steps.status.outputs.ok }}' = 'true'
