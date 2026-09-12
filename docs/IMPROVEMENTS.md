@@ -243,17 +243,21 @@ Add tests preventing accidental duplicate finding codes or silent rename once re
 
 # P1 — security and CI hardening
 
-## P1.12 Pin release-critical GitHub Actions more strictly
+## P1.12 Pin release-critical GitHub Actions more strictly ✅
 
-Before publishing a reusable GitHub Action or sensitive release workflow, consider pinning third-party actions to immutable commit SHAs and documenting the update process.
+Delivered (2026-09-12, PR #26): the reusable `action.yml` composite pins
+`actions/setup-node` to an immutable commit SHA and `docs/ACTION.md`
+documents the pin-update process (resolved SHAs recorded there). The normal
+test workflow keeps the project's chosen maintenance policy; the
+release/security-sensitive Action surface is strictly pinned.
 
-The normal test workflow can follow the project's chosen maintenance policy, but release/security-sensitive workflows should be stricter.
+## P1.13 Add least-privilege PostgreSQL examples ✅
 
-## P1.13 Add least-privilege PostgreSQL examples
-
-Document an example privilege model for `status` checks that can read only the migration metadata needed.
-
-Do not claim a one-size-fits-all SQL grant set without testing it against the exact queries used by the adapter.
+Delivered (2026-09-12, PR #26): `docs/ACTION.md` documents a least-privilege
+`GRANT` recipe for `status` checks (`CONNECT` + schema `USAGE` + table
+`SELECT`), verified live against PostgreSQL 16 with the exact adapter
+queries (write attempt correctly denied). Scoped to the migration metadata
+needed — not claimed as one-size-fits-all.
 
 ## P1.14 Add secret-pattern regression tests
 
