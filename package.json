@@ -50,7 +50,7 @@
   },
   "homepage": "https://github.com/Duylamneuuu/drizzle-doctor#readme",
   "dependencies": {
-    "commander": "^14.0.0",
+    "commander": "^15.0.0",
     "pg": "^8.16.3"
   },
   "devDependencies": {
