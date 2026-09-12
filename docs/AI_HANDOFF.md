@@ -156,12 +156,35 @@ open per the maintainer's recorded toolchain-major deferral. M2 stays 🚧
 solely for the maintainer-authorized publish step (D14); no release
 published (maintainer-gated).
 
+Maintenance run 2026-09-12: PR #30 (P1.2 actionable hints on all findings +
+P1.4 missing-table limitation doc) merged as `5f7c25c`; PR #26 (M4 GitHub
+Action distribution, first increment) un-drafted, rebased onto the new main,
+and merged as `7d80ebf` — all 8 CI checks green on the merge head (CodeQL,
+CI Node 20/22 + postgres-integration + package-smoke, Action smoke
+repo/status modes). Post-merge main CI/CodeQL/Action-smoke runs green on
+`7d80ebf`. M4 marked 🚧 (first increment) in `docs/MILESTONES.md`; P1.12/P1.13
+marked delivered in `docs/IMPROVEMENTS.md`. Local note: `npm run typecheck`
+clean and `npm run build` clean on the merge head; full `npm test` in this
+sandbox shows all non-packaging tests green but `tests/packaging.test.ts`
+(3 tests) times out at the default 5s vitest timeout — the sandbox runs
+single-CPU and three suites each spawn `npm run build`/`npm pack`
+concurrently, while the same file passes standalone (~11s) and all
+packaging assertions pass in CI's `package-smoke` job; environment/resource
+artifact, not a product regression. No release/tag published
+(maintainer-gated, D14). Open Dependabot PRs unchanged: #7 (commander 15)
+and #28 (vitest 5) blocked on locked D9 (Node 20 floor); #10 (typescript 7)
+held per maintainer toolchain-major deferral. Open issues #3 (M4; first
+increment now merged, release/tag still gated), #5/#18 (duplicate npm
+prerelease trackers, maintainer-gated publish + open Q1 library-API
+decision) need maintainer updates/closes — no issue-mutation capability in
+the automation toolset.
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
 2. M2 — prerelease/package hardening
 3. M3 — safe clean-replay capability ✅
-4. M4 — GitHub Action distribution
+4. M4 — GitHub Action distribution 🚧 (first increment merged 2026-09-12; release/tag maintainer-gated)
 5. M5 — compatibility/policy hardening
 6. M6+ — adapters only when justified by evidence
 
