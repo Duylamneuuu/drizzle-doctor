@@ -322,9 +322,20 @@ Text and JSON output identify:
 
 ---
 
-## M4 — GitHub Action distribution ⏳
+## M4 — GitHub Action distribution 🚧
 
 Depends on: stable enough M2 prerelease and M1 validation.
+
+> First increment delivered 2026-09-12 (PR #26, merge `7d80ebf`): composite
+> `action.yml` wrapping `repo`/`status` (read-only; replay excluded),
+> SHA-pinned `actions/setup-node` (P1.12), env-only `DATABASE_URL` secret
+> handling with `::add-mask::` (D11), job summary + `::error` annotations via
+> the internal `src/action-summary.ts` module, `ok` output + CLI exit-code
+> verdict, operator guide `docs/ACTION.md` with a live-verified
+> least-privilege `GRANT` recipe (P1.13), and CI smoke coverage in
+> `.github/workflows/action-smoke.yml`. Remaining before M4 is complete: the
+> Action release/tag publication itself, which is maintainer-gated (D14,
+> issue #3) and intentionally not done here.
 
 ### Goal
 
