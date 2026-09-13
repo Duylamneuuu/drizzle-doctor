@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-09-06.
+Last reviewed: 2026-09-13.
 
 ## 1. Mission
 
@@ -178,6 +178,25 @@ increment now merged, release/tag still gated), #5/#18 (duplicate npm
 prerelease trackers, maintainer-gated publish + open Q1 library-API
 decision) need maintainer updates/closes — no issue-mutation capability in
 the automation toolset.
+
+Maintenance run 2026-09-13: P1.14 secret-pattern regression tests delivered
+— new `tests/secret-regression.test.ts` (8 tests, dummy credential
+`dd-p1-14-dummy-s3cret-pw` against an unreachable loopback target) asserts
+no credential material in text/JSON stdout or stderr across the expected
+CLI failure surface (`status` × `--database-url`/`DATABASE_URL` ×
+text/JSON; `replay` × text/JSON; successful `repo --json` with a
+credential-bearing environment; keyword/value-form redaction; direct
+`readPostgresMigrationState`/`replayMigrations` connection-failure
+messages). Live probing confirmed operational (exit 2) failures emit an
+empty stdout, so `--json` cannot smuggle credentials through a report body.
+P1.14 marked ✅ in `docs/IMPROVEMENTS.md`. Local verification:
+`npm run typecheck` clean, `npm run build` clean, 102 unit tests passed
+(11 skipped — DB integration needs `TEST_DATABASE_URL`,
+`tests/packaging.test.ts` excluded — known single-CPU sandbox timeout
+artifact, unchanged). Latest main CI/CodeQL runs green on `17c9599`. Open
+Dependabot PRs #7 (commander 15) and #28 (vitest 5) stay blocked on locked
+D9; #10 (typescript 7) stays held per maintainer deferral — none merged.
+No release/tag published (maintainer-gated, D14).
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 

@@ -259,7 +259,21 @@ Delivered (2026-09-12, PR #26): `docs/ACTION.md` documents a least-privilege
 queries (write attempt correctly denied). Scoped to the migration metadata
 needed — not claimed as one-size-fits-all.
 
-## P1.14 Add secret-pattern regression tests
+## P1.14 Add secret-pattern regression tests ✅
+
+Delivered (2026-09-13): `tests/secret-regression.test.ts` uses dummy
+credentials only (`dd-p1-14-dummy-s3cret-pw` against an unreachable
+loopback target) and asserts they never appear in text/JSON stdout or
+stderr on any expected CLI failure path: `status` ×
+`--database-url`/`DATABASE_URL`-env × text/JSON, `replay` × text/JSON,
+successful `repo --json` with a credential-bearing environment present,
+plus keyword/value-form redaction and direct
+`readPostgresMigrationState`/`replayMigrations` connection-failure
+assertions. Live probing confirmed the operational (exit 2) failures
+carry no report body on stdout, so `--json` could not smuggle
+credentials through a report either. Existing
+`tests/sanitize.test.ts` (redactor unit) and `tests/cli.test.ts` (two
+flag-based text-mode paths) remain the adjacent coverage.
 
 Use dummy credentials in tests and assert they never appear in text/JSON/stderr outputs for expected failure paths.
 
