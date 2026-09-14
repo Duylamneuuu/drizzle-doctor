@@ -95,19 +95,25 @@ Avoid automatic repair instructions that imply there is one universally safe fix
 
 Potential improvement: expose a short stable `hint` plus structured details rather than increasingly long messages.
 
-## P1.3 Add CLI snapshot/behavior tests
+## P1.3 Add CLI snapshot/behavior tests ✅
 
-Test user-facing command behavior, not only internal functions:
+Delivered (2026-09-14):
 
-- default command vs `repo`
-- `status`
-- `--help`
-- `--version`
-- malformed input
-- text/JSON output
-- exit codes 0/1/2
+Test user-facing command behavior, not only internal functions
+(delivered incrementally in `tests/cli.test.ts`; no snapshot files — semantics
+asserted instead of frozen whitespace):
 
-Keep snapshots selective; assert semantics rather than freezing irrelevant whitespace everywhere.
+- default command vs `repo` ✅ (bare invocation shows usage on stderr, exit
+  `2`; `repo` never runs implicitly)
+- `status` ✅ (missing-URL, connection-failure, and D11 no-leak paths)
+- `--help` ✅
+- `--version` ✅ (matches `package.json`)
+- malformed input ✅ (unknown command/option, unreadable journal/SQL,
+  malformed journal via `tests/m1-matrix.test.ts`)
+- text/JSON output ✅ (parity, exit-code/`ok` relationship, contract shape in
+  `tests/output-contract.test.ts`)
+- exit codes 0/1/2 ✅ (all three pinned, including the bare-invocation
+  regression test)
 
 ## P1.4 Clarify missing-table semantics ✅
 

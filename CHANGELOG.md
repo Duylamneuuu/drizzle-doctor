@@ -85,3 +85,10 @@ tarball verified). Publication itself requires maintainer authorization
   database itself is empty. Pinned by `tests/finding-hints.test.ts`. Hint
   contents remain provisional per `docs/OUTPUT_CONTRACT.md`; no finding code,
   severity, or report shape changed.
+- CLI usage-error hardening (M2.3/P1.3): a bare invocation with no subcommand
+  now reliably shows usage on stderr with exit `2` instead of leaking
+  commander's `(outputHelp)` placeholder into stderr, and the behavior is
+  pinned by a new `tests/cli.test.ts` regression test. Previously only some
+  usage-error paths (`commander.helpDisplayed`, exit `1`) were handled while
+  the bare-invocation path (`commander.help`) fell through to a generic
+  message writer. No finding code, report shape, or other exit changed.

@@ -160,13 +160,15 @@ program.exitOverride();
 
 program.parseAsync(process.argv).catch((error: unknown) => {
   if (error instanceof CommanderError) {
-    // Help/version requests are successful exits; a bare invocation shows help
-    // with a non-zero code; every other commander error means the command
-    // could not complete (unknown command/option), not that migration
-    // problems were found.
+    // Help/version requests are successful exits. A bare invocation with no
+    // subcommand shows help to stderr via commander.help; map it to exit 2
+    // (command could not complete) without printing the error's placeholder
+    // message. Every other commander error means the command could not
+    // complete (unknown command/option), not that migration problems were
+    // found.
     if (error.exitCode === 0) return;
-    if (error.code === 'commander.helpDisplayed') {
-      process.exitCode = 1;
+    if (error.code === 'commander.helpDisplayed' || error.code === 'commander.help') {
+      process.exitCode = 2;
       return;
     }
     process.stderr.write(`drizzle-doctor: ${error.message}\n`);
