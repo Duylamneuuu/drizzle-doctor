@@ -163,6 +163,20 @@ describe('cli exit behavior', () => {
     expect(stderr).toContain("unknown option '--bogus-flag'");
   });
 
+  it('bare invocation with no subcommand shows help on stderr and exits 2', async () => {
+    // A bare `drizzle-doctor` must not silently default to any command: it
+    // prints usage to stderr and exits 2 (operational failure, exit-code
+    // contract), matching the CHANGELOG behavior since M1. The `commander.*`
+    // error codes differ by path (`commander.help` for a bare invocation vs
+    // `commander.helpDisplayed` for some usage errors), so this pins the
+    // observable contract rather than the code.
+    const { code, stdout, stderr } = await run([]);
+    expect(code).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).toContain('Usage: drizzle-doctor');
+    expect(stderr).not.toContain('(outputHelp)');
+  });
+
   it('status without a database URL exits 2 with an explanatory error', async () => {
     const dir = await repoFixture(
       [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],

@@ -198,6 +198,30 @@ Dependabot PRs #7 (commander 15) and #28 (vitest 5) stay blocked on locked
 D9; #10 (typescript 7) stays held per maintainer deferral — none merged.
 No release/tag published (maintainer-gated, D14).
 
+Maintenance run 2026-09-14: PR #32 (P1.14, 8 secret-regression tests)
+un-drafted, verified locally (typecheck clean, 8/8 new tests green), and
+squash-merged as `827cffa` — post-merge main CI (run 85) and CodeQL (run 76)
+green on the merge head. New work on the thread branch: CLI usage-error
+hardening (M2.3/P1.3) — a bare invocation with no subcommand now reliably
+shows usage on stderr with exit `2` instead of leaking commander's
+`(outputHelp)` placeholder into stderr (previously only the
+`commander.helpDisplayed` path was mapped while the bare-invocation
+`commander.help` path fell through to a generic writer), pinned by a new
+`tests/cli.test.ts` regression test asserting exit 2, empty stdout, usage
+on stderr, and no placeholder text. `docs/MILESTONES.md` (M2.3 row),
+`docs/IMPROVEMENTS.md` (P1.3 marked ✅ with per-row delivery mapping), and
+`CHANGELOG.md` (Unreleased entry) updated. Local verification on the thread
+head: `npm run typecheck` clean, `npx vitest run --exclude
+tests/packaging.test.ts` 103 passed / 11 skipped (DB integration needs
+`TEST_DATABASE_URL`; packaging excluded — same known single-CPU sandbox
+timeout artifact), `npm run build` clean, `npm pack --dry-run` clean (43
+files, `drizzle-doctor-0.1.0-alpha.1.tgz`). No finding code, severity,
+report shape, or other exit changed (D7/D8 intact). No release/tag
+published (maintainer-gated, D14). Upstream watch: `npm view` still shows
+`drizzle-orm` stable `latest` at `0.45.2` (rc line at `1.0.0-rc.5-5935859`
+under the `rc5` tag), matching `docs/COMPATIBILITY.md` — no drift, no doc
+update needed.
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅

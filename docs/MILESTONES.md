@@ -158,7 +158,7 @@ Cover at minimum:
 
 - helpful `--help` ✅ (`tests/cli.test.ts`)
 - helpful `--version` ✅ (`tests/cli.test.ts`, derives from `package.json`)
-- invalid argument behavior ✅ (unknown command/option exit `2`)
+- invalid argument behavior ✅ (unknown command/option exit `2`; bare invocation with no subcommand shows usage on stderr with exit `2`, pinned in `tests/cli.test.ts`)
 - missing migration folder ✅ (missing journal finding, exit `1`)
 - malformed journal ✅ (`tests/m1-matrix.test.ts`)
 - database connection failure ✅ (exit `2`, sanitized message; `tests/cli.test.ts`)
