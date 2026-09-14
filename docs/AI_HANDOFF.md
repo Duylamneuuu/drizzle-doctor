@@ -222,6 +222,27 @@ published (maintainer-gated, D14). Upstream watch: `npm view` still shows
 under the `rc5` tag), matching `docs/COMPATIBILITY.md` — no drift, no doc
 update needed.
 
+Maintenance run 2026-09-14 (follow-up): PR #33 (M2.3/P1.3 CLI usage-error
+hardening) un-drafted and squash-merged as `6866892` — post-merge main CI
+(run 87), Action smoke (run 7), and CodeQL (run 78) green on the merge head.
+Thread branch reset to the merge head; local validation on it: `npm run
+typecheck` clean, `npx vitest run tests/cli.test.ts` 18/18 green, full unit
+run `npx vitest run --exclude tests/packaging.test.ts` 103 passed / 11
+skipped (DB integration needs `TEST_DATABASE_URL`; packaging excluded — same
+known single-CPU sandbox timeout artifact), `npm run build` clean, `npm pack
+--dry-run` clean (43 files). Upstream recheck: `drizzle-orm` stable `latest`
+still `0.45.2`, pinned devDependency unchanged; v1 rc line active under rc
+tags only — no compatibility drift. New fix this segment: README's
+Machine-readable output section said `--json` applies to "`repo` or `status`"
+only and its field table used "`repo`/`status`"-era "both" scoping — stale
+since the M3 `replay` command landed. Updated the README wording and table to
+all three commands (`command` = `"repo" | "status" | "replay"`, plus the
+`replay`-only section row) so the README matches `docs/OUTPUT_CONTRACT.md`
+and actual report shapes; docs-only, no product code touched, no finding
+codes/severities/exits changed (D7/D8 intact). Release/tag still
+maintainer-gated (D14; issues #3/#5/#18 untouched), Dependabot majors #7/#10
+still deferred.
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
