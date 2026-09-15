@@ -193,3 +193,41 @@ to v1 tables or folders until a deliberate v1 compatibility decision is made
   high-watermark behavior in the v1 line; the rc.4 source inspected here
   differs from that report, so the v1 line is still moving — re-verify
   before modeling it.
+
+## Upstream watch (2026-09-15)
+
+Re-checked against the npm registry and the published `drizzle-orm` rc build
+on 2026-09-15 (inspected tarball `drizzle-orm@1.0.0-rc.5-5935859`,
+dist-tag `rc5`).
+
+### Stable line — unchanged — no action needed
+
+- `drizzle-orm@0.45.2` is still the latest **stable** release (`dist-tag
+  latest`); `drizzle-kit@0.31.10` is still the latest stable kit. All
+  "Verified semantics" above remain accurate for the stable line; no code
+  or test change was needed.
+
+### v1 release-candidate line — diverged further, still out of scope (R2)
+
+`drizzle-orm@1.0.0-rc.5` changes one modeled assumption relative to the
+rc.4 notes above; everything else is confirmed unchanged. Do not extend
+`status`/`repo` semantics to v1 tables or folders until a deliberate v1
+compatibility decision is made (research queue item R2 tracks this):
+
+- `readMigrationFiles` now **hard-rejects** the legacy layout: when
+  `<migrationsFolder>/meta/_journal.json` exists it throws
+  `Error("We detected that you have old drizzle-kit migration folders.
+  You must upgrade drizzle-kit and run \"drizzle-kit up\"")`
+  (`migrator.js` in the published rc.5 build). In rc.4 the journal-based
+  reader still existed; in rc.5 legacy folders must be migrated via
+  `drizzle-kit up` to the per-migration-folder layout before the v1
+  migrator will run at all.
+- The versioned PostgreSQL migration table is unchanged from rc.4:
+  `upgradeIfNeeded` (`up-migrations/pg.js` in the published build) adds
+  `name text` and `applied_at timestamp with time zone DEFAULT now()` via
+  `ADD COLUMN IF NOT EXISTS` and backfills both columns for existing rows.
+  `created_at` is still the journal millis at insert time.
+- The apply decision is unchanged from rc.4: `getMigrationsToRun`
+  (`migrator.utils.js` in the published build) filters local migrations by
+  `name` set membership (`formatToMillis` fallback still present); there
+  is still no `order by created_at desc limit 1` watermark in that path.
