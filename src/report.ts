@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+
 import type {
   DatabaseAnalysis,
   DatabaseSnapshot,
@@ -5,6 +7,7 @@ import type {
   Finding,
   ReplayResult,
   RepoInspection,
+  ReportMetadata,
 } from './types.js';
 import { hasErrors } from './types.js';
 
@@ -15,6 +18,33 @@ import { hasErrors } from './types.js';
  */
 export const REPORT_FORMAT_VERSION = 1;
 
+/**
+ * Version of the drizzle-doctor tool embedded in report metadata (P1.5).
+ *
+ * Read from `package.json` at runtime (like `cli.ts --version`) so the
+ * metadata can never drift from the published package version. `src/report.ts`
+ * must not import `src/cli.ts` (that would pull commander into the library
+ * entry), so the lookup lives here.
+ */
+const TOOL_VERSION: string = (() => {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require('../package.json') as { version?: unknown };
+    return typeof pkg.version === 'string' ? pkg.version : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+})();
+
+function baseMetadata(extra: Partial<ReportMetadata> = {}): ReportMetadata {
+  return {
+    toolVersion: TOOL_VERSION,
+    backend: 'postgres',
+    reportFormatVersion: REPORT_FORMAT_VERSION,
+    ...extra,
+  };
+}
+
 export function createRepoReport(
   inspection: RepoInspection,
   command: DoctorReport['command'] = 'repo',
@@ -24,6 +54,9 @@ export function createRepoReport(
     command,
     ok: !hasErrors(inspection.findings),
     generatedAt: new Date().toISOString(),
+    // `repo` never connects, so it reports no concrete migration location:
+    // emitting the defaults here would imply the tool chose them.
+    metadata: baseMetadata(),
     repository: {
       migrationsDir: inspection.migrationsDir,
       journalPath: inspection.journalPath,
@@ -45,6 +78,9 @@ export function createStatusReport(
     command: 'status',
     ok: !hasErrors(findings),
     generatedAt: new Date().toISOString(),
+    // The schema/table come from the resolved database snapshot (user flags
+    // or CLI defaults), never from the connection string (D11).
+    metadata: baseMetadata({ migrationsSchema: database.schema, migrationsTable: database.table }),
     repository: {
       migrationsDir: inspection.migrationsDir,
       journalPath: inspection.journalPath,
@@ -99,6 +135,9 @@ export function createReplayReport(
     command: 'replay',
     ok: !hasErrors(findings),
     generatedAt: new Date().toISOString(),
+    // The schema/table come from the resolved replay target (user flags or
+    // CLI defaults), never from the connection string (D11).
+    metadata: baseMetadata({ migrationsSchema: result.schema, migrationsTable: result.table }),
     repository: {
       migrationsDir: inspection.migrationsDir,
       journalPath: inspection.journalPath,

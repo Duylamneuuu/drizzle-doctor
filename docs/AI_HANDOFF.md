@@ -243,6 +243,31 @@ codes/severities/exits changed (D7/D8 intact). Release/tag still
 maintainer-gated (D14; issues #3/#5/#18 untouched), Dependabot majors #7/#10
 still deferred.
 
+Maintenance run 2026-09-15: P1.5 compatibility metadata delivered on the
+thread branch — every JSON report now carries a `metadata` object
+(`toolVersion` from runtime `package.json`, `backend: "postgres"`,
+`reportFormatVersion` mirroring `formatVersion`) plus
+`migrationsSchema`/`migrationsTable` on `status`/`replay` from the resolved
+snapshot/target only (omitted on `repo`, which never connects; no hosts,
+URLs, or credentials — D11). Purely additive per the OUTPUT_CONTRACT
+evolution policy, so `formatVersion` stays `1` (M5.2 "schema/version metadata
+if needed" now satisfied). Changed: `src/types.ts` (`ReportMetadata`,
+required `DoctorReport.metadata`, library-exported), `src/report.ts`
+(builders emit metadata), tests (`tests/report-metadata.test.ts` new, 5
+tests; key-list assertions in `tests/output-contract.test.ts` +
+`tests/replay.test.ts`; `metadata` added to the `tests/action-summary.test.ts`
+fixture), docs (`docs/OUTPUT_CONTRACT.md` `metadata` section + example +
+stable-field row, `README.md` field table, `CHANGELOG.md` Unreleased entry,
+P1.5 marked ✅ in `docs/IMPROVEMENTS.md`). Local verification:
+`npm run typecheck` clean, full `npm test` with `TEST_DATABASE_URL`
+**122/122 green across 18 files** (incl. integration), `npm run build`
+clean, `npm pack --dry-run` clean (43 files), live CLI smoke confirms
+`metadata` on `repo --json` (no location keys) and `status --json` (resolved
+schema/table). No finding code, severity, exit, or text format changed
+(D7/D8 intact). Upstream watch: `drizzle-orm` stable `latest` still
+`0.45.2`, `drizzle-kit` `0.31.10` — no drift. PR #28 (vitest 5) stays blocked
+on locked D9 (Node 20 floor); release/tag still maintainer-gated (D14).
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅

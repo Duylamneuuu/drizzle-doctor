@@ -92,3 +92,13 @@ tarball verified). Publication itself requires maintainer authorization
   usage-error paths (`commander.helpDisplayed`, exit `1`) were handled while
   the bare-invocation path (`commander.help`) fell through to a generic
   message writer. No finding code, report shape, or other exit changed.
+- report compatibility metadata (P1.5): every JSON report now carries a
+  `metadata` object — `toolVersion` (runtime `package.json` version),
+  `backend: "postgres"`, and `reportFormatVersion` (mirroring
+  `formatVersion`) on all commands, plus `migrationsSchema`/`migrationsTable`
+  on `status` and `replay` (from the resolved database snapshot / replay
+  target; omitted on `repo`, which never connects). No host, URL, or
+  credential material is included (D11). Purely additive per the
+  `docs/OUTPUT_CONTRACT.md` evolution policy, so `formatVersion` stays `1`.
+  Pinned by `tests/report-metadata.test.ts`; documented in
+  `docs/OUTPUT_CONTRACT.md` and `README.md`.

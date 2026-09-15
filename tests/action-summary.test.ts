@@ -19,6 +19,11 @@ function report(overrides: Partial<DoctorReport> = {}): DoctorReport {
     command: 'repo',
     ok: true,
     generatedAt: '2026-09-09T00:00:00.000Z',
+    metadata: {
+      toolVersion: '0.1.0-alpha.1',
+      backend: 'postgres',
+      reportFormatVersion: 1,
+    },
     repository: {
       migrationsDir: '/tmp/drizzle',
       journalPath: '/tmp/drizzle/meta/_journal.json',

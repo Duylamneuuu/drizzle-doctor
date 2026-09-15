@@ -88,12 +88,40 @@ export interface ReplayResult {
   firstFailure?: ReplayFailure;
 }
 
+/**
+ * Compatibility metadata carried by every report (P1.5).
+ *
+ * This answers "which tool, which backend, which migration location, which
+ * report shape produced this output" for CI consumers correlating reports
+ * over time. It intentionally carries no host, URL, or credential material
+ * (invariant D11): only the configured schema/table names, which are
+ * Drizzle metadata-location identifiers, not secrets.
+ */
+export interface ReportMetadata {
+  /** The drizzle-doctor package version that produced the report. */
+  toolVersion: string;
+  /** The database backend the report was produced against. */
+  backend: 'postgres';
+  /**
+   * Configured Drizzle migration schema/table. Present only when the command
+   * resolved a concrete migration location (`status` from the database
+   * snapshot, `replay` from the replay target); omitted for `repo`, which
+   * never connects and must not imply defaults the user did not choose.
+   */
+  migrationsSchema?: string;
+  migrationsTable?: string;
+  /** Mirrors the top-level `formatVersion` for self-describing consumers. */
+  reportFormatVersion: number;
+}
+
 export interface DoctorReport {
   /** Shape version of the machine-readable report; see docs/OUTPUT_CONTRACT.md. */
   formatVersion: number;
   command: 'repo' | 'status' | 'replay';
   ok: boolean;
   generatedAt: string;
+  /** Compatibility metadata; see docs/OUTPUT_CONTRACT.md. */
+  metadata: ReportMetadata;
   repository: {
     migrationsDir: string;
     journalPath: string;
