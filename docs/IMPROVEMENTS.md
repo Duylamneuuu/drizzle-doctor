@@ -133,18 +133,19 @@ A missing migration table is currently informational and all local migrations ar
 
 Validate this against actual Drizzle first-run behavior and document the limitation: a missing table does not prove the database itself is empty or safe; it only means no Drizzle migration metadata table was found at the configured location.
 
-## P1.5 Add compatibility metadata to diagnostics
+## P1.5 Add compatibility metadata to diagnostics ✅
 
-Research whether output should include tool version and detected/configured backend metadata.
-
-Useful candidates:
-
-- drizzle-doctor version
-- backend (`postgres`)
-- migration schema/table
-- report format version
-
-Do not include database host, URL or private identifiers by default.
+Delivered (2026-09-15): every report now carries a `metadata` object —
+`toolVersion` (runtime `package.json` version), `backend: "postgres"`, and
+`reportFormatVersion` (mirroring `formatVersion`) on all commands, plus
+`migrationsSchema`/`migrationsTable` on `status` (from the resolved database
+snapshot) and `replay` (from the replay target). `repo` carries no
+schema/table keys so it never implies defaults the user did not choose. No
+host, URL, or credential material is included (D11). The addition is purely
+additive per the `docs/OUTPUT_CONTRACT.md` evolution policy, so
+`formatVersion` stays `1`. Pinned by `tests/report-metadata.test.ts`;
+`docs/OUTPUT_CONTRACT.md`, `README.md`, and `CHANGELOG.md` document the new
+field.
 
 ## P1.6 Improve large-history behavior ✅
 

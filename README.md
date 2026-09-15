@@ -109,6 +109,7 @@ provisional fields, and the evolution policy — is defined in
 | `command` | all | `"repo"`, `"status"`, or `"replay"` |
 | `ok` | all | `true` when there are no error-level findings (`false` correlates with exit code `1`; exit code `2` means the command did not produce a report) |
 | `generatedAt` | all | ISO-8601 timestamp |
+| `metadata` | all | `{ toolVersion, backend, migrationsSchema?, migrationsTable? (status/replay only), reportFormatVersion }` — compatibility metadata, no hosts/URLs/credentials |
 | `repository` | all | `{ migrationsDir, journalPath, migrationCount, orphanSqlFiles }` |
 | `database` | `status` only | `{ schema, table, tableExists, rowCount, maxCreatedAt }` |
 | `summary` | `status` only | `{ local, database, applied, pending, skippedHazards, hashMismatches, databaseOnly }` |

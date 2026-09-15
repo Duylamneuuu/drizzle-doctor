@@ -16,6 +16,7 @@ export type {
   ReplayFailure,
   ReplayResult,
   RepoInspection,
+  ReportMetadata,
   Severity,
   StatusSummary,
 } from './types.js';

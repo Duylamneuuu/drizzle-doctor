@@ -42,11 +42,26 @@ The JSON report is a single object on stdout. Top-level fields:
 | `command` | all | `"repo" \| "status" \| "replay"` | Command identity. |
 | `ok` | all | `boolean` | `true` when there are no error-level findings. |
 | `generatedAt` | all | `string` (ISO-8601) | Time the report was generated. Not deterministic. |
+| `metadata` | all | `object` | Compatibility metadata (tool version, backend, migration location). See [`metadata`](#metadata). |
 | `repository` | all | `object` | Local repository audit summary. |
 | `database` | `status` only | `object` | Database migration-table snapshot. |
 | `summary` | `status` only | `object` | Local-vs-database comparison counters. |
 | `replay` | `replay` only | `object` | Clean-replay outcome. |
 | `findings` | all | `array` | Ordered list of finding objects. |
+
+### `metadata`
+
+Compatibility metadata so CI consumers can correlate reports over time
+(P1.5). Carries no host, URL, or credential material — schema/table names
+are Drizzle metadata-location identifiers, not secrets (D11).
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `toolVersion` | `string` | `drizzle-doctor` package version that produced the report (read from `package.json` at runtime). |
+| `backend` | `"postgres"` | Database backend the report was produced against. |
+| `migrationsSchema` | `string` (optional) | Configured Drizzle migration schema. Present on `status` (from the resolved database snapshot) and `replay` (from the replay target); omitted on `repo`, which never connects and must not imply defaults the user did not choose. |
+| `migrationsTable` | `string` (optional) | Configured Drizzle migration table. Same presence rules as `migrationsSchema`. |
+| `reportFormatVersion` | `number` | Mirrors the top-level `formatVersion` for self-describing consumers. |
 
 ### `repository`
 
@@ -130,6 +145,9 @@ Stable (treat as API once released):
 - exit codes and their meaning
 - `formatVersion` and the evolution policy below
 - `command`, `ok`
+- `metadata.toolVersion`, `metadata.backend`, and the presence/absence rules
+  for `metadata.migrationsSchema`/`metadata.migrationsTable` (the exact
+  schema/table *values* follow the user's flags/defaults, not the contract)
 - finding `code`, `severity`, and the semantics of `message`
 - the presence/absence rules for optional sections
 
@@ -161,6 +179,11 @@ Healthy `repo` report:
   "command": "repo",
   "ok": true,
   "generatedAt": "2026-09-04T02:00:00.000Z",
+  "metadata": {
+    "toolVersion": "0.1.0-alpha.1",
+    "backend": "postgres",
+    "reportFormatVersion": 1
+  },
   "repository": {
     "migrationsDir": "/tmp/drizzle",
     "journalPath": "/tmp/drizzle/meta/_journal.json",

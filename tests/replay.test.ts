@@ -56,6 +56,7 @@ describe('createReplayReport (M3)', () => {
       'findings',
       'formatVersion',
       'generatedAt',
+      'metadata',
       'ok',
       'replay',
       'repository',

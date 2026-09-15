@@ -35,6 +35,7 @@ describe('machine-readable report shape (M2.4)', () => {
       'findings',
       'formatVersion',
       'generatedAt',
+      'metadata',
       'ok',
       'repository',
     ]);
@@ -43,6 +44,9 @@ describe('machine-readable report shape (M2.4)', () => {
     expect(report.ok).toBe(true);
     expect(report.database).toBeUndefined();
     expect(report.summary).toBeUndefined();
+    expect(report.metadata).toMatchObject({ backend: 'postgres', reportFormatVersion: REPORT_FORMAT_VERSION });
+    expect(report.metadata.toolVersion).toEqual(expect.any(String));
+    expect(report.metadata.reportFormatVersion).toBe(report.formatVersion);
     expect(report.repository).toEqual({
       migrationsDir: '/tmp/drizzle',
       journalPath: '/tmp/drizzle/meta/_journal.json',
@@ -62,11 +66,18 @@ describe('machine-readable report shape (M2.4)', () => {
       'findings',
       'formatVersion',
       'generatedAt',
+      'metadata',
       'ok',
       'repository',
       'summary',
     ]);
     expect(report.command).toBe('status');
+    expect(report.metadata).toMatchObject({
+      backend: 'postgres',
+      migrationsSchema: 'drizzle',
+      migrationsTable: '__drizzle_migrations',
+      reportFormatVersion: REPORT_FORMAT_VERSION,
+    });
     expect(report.database).toEqual({
       schema: 'drizzle',
       table: '__drizzle_migrations',
@@ -136,6 +147,7 @@ describe('replay report shape (M3)', () => {
       'findings',
       'formatVersion',
       'generatedAt',
+      'metadata',
       'ok',
       'replay',
       'repository',
@@ -147,6 +159,12 @@ describe('replay report shape (M3)', () => {
     expect(report.summary).toBeUndefined();
     expect(report.findings).toEqual([]);
     expect(report.replay).toEqual(result);
+    expect(report.metadata).toMatchObject({
+      backend: 'postgres',
+      migrationsSchema: 'drizzle',
+      migrationsTable: '__drizzle_migrations',
+      reportFormatVersion: REPORT_FORMAT_VERSION,
+    });
   });
 
   it('a firstFailure is omitted when replay succeeded', () => {
