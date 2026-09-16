@@ -306,7 +306,9 @@ Open issues track the next major work:
 The M1 validation issue (#1) is closed as completed; the M3 replay issue (#2)
 is closed as completed via PR #21.
 
-Note: issue #18 (created 2026-09-04) is a duplicate M2-checklist tracker of #5; its content was folded into #5's thread of comments. Maintenance agents cannot close issues with the available first-party tools, so #18 may remain open until a manual close.
+Issue #18 (created 2026-09-04) was a duplicate M2-checklist tracker of #5 and
+was closed as a duplicate on 2026-09-16. Keep subsequent prerelease progress
+and maintainer decisions in #5.
 
 When an issue is assigned, treat the issue as the task scope. When no issue is assigned, choose the first unblocked item in `docs/MILESTONES.md` and prefer creating/updating an issue rather than performing a large untracked change.
 
