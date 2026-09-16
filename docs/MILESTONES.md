@@ -219,11 +219,10 @@ Prepare, but do not publish without explicit maintainer authorization
 - CI green ✅
 - no release is published automatically ✅ (publication is maintainer-gated)
 
-All pre-publication criteria hold. The `0.1.0-alpha.2` release candidate is
-verified at commit `c6a6211`; its public tag/Release is still pending. Until
-then, Action consumers should pin that full commit SHA. **npm publish has not
-been performed** and remains maintainer-gated (D14). A moving major Action tag
-(`@v1`) is a separate M4 concern and must not be created while still pre-alpha.
+All pre-publication criteria hold. GitHub Pre-release tag `v0.1.0-alpha.2`
+points to verified commit `c6a6211`; Action consumers should pin that immutable
+tag. **npm publish has not been performed** and remains maintainer-gated (D14).
+A moving major Action tag (`@v1`) must not be created while still pre-alpha.
 
 ---
 
@@ -328,7 +327,7 @@ Text and JSON output identify:
 
 ---
 
-## M4 — GitHub Action distribution 🚧
+## M4 — GitHub Action distribution ✅
 
 Depends on: stable enough M2 prerelease and M1 validation.
 
@@ -341,12 +340,12 @@ Depends on: stable enough M2 prerelease and M1 validation.
 > least-privilege `GRANT` recipe (P1.13), and CI smoke coverage in
 > `.github/workflows/action-smoke.yml`.
 >
-> The `0.1.0-alpha.2` candidate is verified at commit `c6a6211`; its public
-> tag/Release is pending. Consumers should pin the full verified commit SHA.
+> GitHub Pre-release tag `v0.1.0-alpha.2` points to verified commit `c6a6211`.
+> Consumers should pin `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2`.
 > Remaining maintainer-gated pieces: **npm publish** (M2/D14; not required
 > for Action source consumption from the tag) and a future moving major tag
-> such as `@v1` (must not be created while still pre-alpha). Issue #3 stays
-> open until the maintainer confirms the M4 gate.
+> such as `@v1` (must not be created while still pre-alpha). The maintainer
+> confirmed the M4 gate after publishing alpha.2 on 2026-09-16.
 
 ### Goal
 
@@ -384,8 +383,7 @@ Make the useful checks easy to add to a repository without requiring a custom CI
 - status mode works with read-only DB credentials ✅
 - findings are visible without digging through raw logs ✅
 - Action release/versioning strategy is documented ✅ (`docs/ACTION.md`;
-  current candidate pin `@c6a6211fe49f7e6348671058ff3d76e03aa5432d`;
-  alpha.2 and moving `@v1` tags are maintainer-later)
+  current pin `@v0.1.0-alpha.2`; moving `@v1` is maintainer-later)
 
 ---
 

@@ -8,7 +8,7 @@
 
 `drizzle-doctor` is a CLI for auditing Drizzle migration history before deployment. It checks the migration journal on disk, compares it with PostgreSQL's Drizzle migration table, and flags states that Drizzle's timestamp high-watermark migration logic can skip. An opt-in `replay` command additionally proves that the full history applies cleanly from zero on an explicitly disposable PostgreSQL database.
 
-> **Status:** pre-alpha. Version `0.1.0-alpha.2` is release-ready on `main`, but its public tag/Release has not yet been created. No npm package has been published. Until the tag exists, pin the composite Action to verified commit `c6a6211fe49f7e6348671058ff3d76e03aa5432d` (see [`docs/ACTION.md`](docs/ACTION.md)).
+> **Status:** pre-alpha. GitHub Pre-release [`v0.1.0-alpha.2`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.2) is available for source and composite Action consumption. No npm package has been published (see [`docs/ACTION.md`](docs/ACTION.md)).
 
 ## Why
 
@@ -60,9 +60,9 @@ Database inspection (`repo`, `status`) is **read-only**. `drizzle-doctor` does n
 
 ## Copy-paste recipes
 
-There is no npm package yet. Local recipes assume a clone of this repository.
-Until the alpha.2 tag exists, GitHub Action recipes pin the verified immutable
-commit SHA. A moving `@v1` tag does not exist yet.
+There is no npm package yet. Local recipes assume a clone of this repository
+or the `v0.1.0-alpha.2` source tag. GitHub Action recipes pin that immutable
+pre-release tag. A moving `@v1` tag does not exist yet.
 
 ### Local repo audit
 
@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: Duylamneuuu/drizzle-doctor@c6a6211fe49f7e6348671058ff3d76e03aa5432d
+      - uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2
         with:
           mode: repo
           migrations: ./drizzle
@@ -136,7 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: Duylamneuuu/drizzle-doctor@c6a6211fe49f7e6348671058ff3d76e03aa5432d
+      - uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2
         with:
           mode: status
           migrations: ./drizzle
@@ -185,7 +185,7 @@ Finding codes and severities are documented in [`docs/FINDINGS.md`](docs/FINDING
 
 - **v0.1:** repository audit + PostgreSQL migration-state audit (in the GitHub Pre-release; npm not published)
 - **v0.2:** clean replay check against a disposable PostgreSQL database (implemented; included in the GitHub Pre-release; npm not published)
-- **v0.3:** GitHub Action + PR summary annotations (Action source is release-ready at the verified alpha.2 candidate commit; public tag pending, no moving `@v1` yet)
+- **v0.3:** GitHub Action + PR summary annotations (published in `v0.1.0-alpha.2`; no moving `@v1` yet)
 - **v0.4:** stronger divergent-history detection and policy configuration
 - **v0.5+:** SQLite/D1, MySQL, Neon/Supabase/Turso-oriented adapters where they add real value
 
