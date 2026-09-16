@@ -290,16 +290,20 @@ This is more useful than adding a generic redaction library prematurely.
 
 # P2 — developer experience and adoption
 
-## P2.1 Add copy-paste recipes
+## P2.1 Add copy-paste recipes ✅
 
-After prerelease, add concise examples for:
+Delivered (2026-09-16): concise copy-paste examples for:
 
-- local repo audit
-- local PostgreSQL status audit
-- GitHub Actions repo-only audit
-- GitHub Actions status audit
+- local repo audit ✅ (`README.md`)
+- local PostgreSQL status audit ✅ (`README.md`; `DATABASE_URL` preferred)
+- GitHub Actions repo-only audit ✅ (`README.md`, `docs/ACTION.md`; pin
+  `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`)
+- GitHub Actions status audit ✅ (same; read-only secret input)
 
-Avoid examples for features that are not released.
+Replay stays optional/advanced in README with disposable-DB safety language
+and is **not** part of the Action. npm is unpublished, so local recipes use
+the source checkout / tag; Action recipes pin the real GitHub Pre-release
+tag. A moving `@v1` tag is not documented as existing.
 
 ## P2.2 Create a minimal reproduction helper
 

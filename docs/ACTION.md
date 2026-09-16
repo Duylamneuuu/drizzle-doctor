@@ -4,10 +4,13 @@ This is the operator guide for the composite GitHub Action defined in
 [`action.yml`](../action.yml). The Action wraps the `drizzle-doctor` CLI so a
 repository gets the audit without a custom CI script.
 
-> Status: the Action source exists on this branch but **no Action
-> release/tag has been published** — publishing a release/tag is
-> maintainer-gated (see [`docs/AUTOMATION.md`](AUTOMATION.md) and issue #3)
-> and must not be done by automation.
+> Status: a GitHub Pre-release tag exists for Action consumption —
+> [`v0.1.0-alpha.1`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.1)
+> (commit `3d82576`). Pin consumers to that immutable tag. A moving major
+> tag such as `@v1` has **not** been created (still pre-alpha) and must not
+> be invented by automation; the maintainer may advance one later. npm
+> publish is a **separate** maintainer-gated step and was not part of this
+> release (see [`docs/AUTOMATION.md`](AUTOMATION.md) and issue #3).
 
 ## Modes
 
@@ -18,9 +21,19 @@ repository gets the audit without a custom CI script.
 - Replay is intentionally **not** part of the Action surface (M4 Mode 3 is
   explicitly "later"). Keep the Action read-only.
 
-## Usage
+## Copy-paste recipes
+
+Pin `uses:` to the published immutable tag. Do not substitute `@v1` — that
+moving major tag does not exist yet.
+
+### GitHub Actions — repository-only audit (no secrets)
 
 ```yaml
+name: drizzle-doctor
+on:
+  push:
+  pull_request:
+
 permissions:
   contents: read
 
@@ -30,13 +43,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Audit migrations (no secrets)
-        uses: Duylamneuuu/drizzle-doctor@v1 # maintainer-published moving tag (not yet created)
+        uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1
         with:
           mode: repo
           migrations: ./drizzle
 ```
 
+### GitHub Actions — status audit (read-only PostgreSQL)
+
 ```yaml
+name: drizzle-doctor
+on:
+  push:
+  pull_request:
+
 permissions:
   contents: read
 
@@ -46,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Audit migrations against PostgreSQL (read-only)
-        uses: Duylamneuuu/drizzle-doctor@v1 # maintainer-published moving tag (not yet created)
+        uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1
         with:
           mode: status
           migrations: ./drizzle
@@ -151,14 +171,16 @@ Resolved 2026-09-09 for future use (example workflows, release tooling):
 
 ## Versioning / release strategy
 
-No Action release exists yet. The recommended strategy (for the maintainer,
-not automation):
+The current published pin is the immutable pre-release tag `v0.1.0-alpha.1`.
+Recommended strategy (maintainer, not automation):
 
-- Publish immutable Git tags per release (e.g. `v1.0.0`) pointing at SHAs
-  whose internal third-party pins are already immutable.
-- Maintain a moving major tag (e.g. `v1`) that the maintainer advances to
-  each compatible release, so consumers can pin to `@v1` while the Action's
-  own dependencies stay SHA-pinned internally.
+- Publish immutable Git tags per release pointing at SHAs whose internal
+  third-party pins are already immutable (started with `v0.1.0-alpha.1`).
+- Later, the maintainer may maintain a moving major tag (e.g. `v1`) advanced
+  to each compatible release, so consumers can pin to `@v1` while the
+  Action's own dependencies stay SHA-pinned internally. That moving tag
+  does **not** exist yet — pin to `@v0.1.0-alpha.1` until the maintainer
+  creates one.
 - Do not create or move release tags from automation; see issue #3
   ("Agent constraints").
 

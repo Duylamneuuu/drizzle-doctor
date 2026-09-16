@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-09-13.
+Last reviewed: 2026-09-16.
 
 ## 1. Mission
 
@@ -74,11 +74,18 @@ The repository also contains the completed M1 validation milestone:
 - M1.4 false-positive review and upgrade checklist in `docs/COMPATIBILITY.md`
 - CLI exit-code contract enforced for invalid invocations
 
-The repository is still pre-release. Do not assume npm publication, a stable public API, or production-scale compatibility testing has happened.
+The repository is still pre-alpha. A GitHub Pre-release tag `v0.1.0-alpha.1`
+exists (2026-09-16, commit `3d82576`) for source/Action consumption. Do not
+assume npm publication, a stable public API, or production-scale
+compatibility testing has happened. Do not create a moving `@v1` Action tag.
 
 ## 4. Current priority
 
-The next priority is **package and prerelease hardening (M2)** — reproducible installs, packed-package smoke tests, CLI behavior hardening, and the documented output contract. Publishing itself still requires maintainer authorization.
+The next remaining **maintainer-gated** item is **npm publish (M2.5 / D14)**.
+Do not publish. M4 Action source + GitHub tag `v0.1.0-alpha.1` exist;
+consumers pin `@v0.1.0-alpha.1`. A moving `@v1` tag must not be created
+while still pre-alpha. Post-release docs closeout (P2.1 recipes, ACTION.md
+pin, changelog fold) is the current non-gated M4 follow-up.
 
 M2 progress as of 2026-09-04 (see `docs/MILESTONES.md` for detailed status):
 
@@ -268,12 +275,19 @@ schema/table). No finding code, severity, exit, or text format changed
 `0.45.2`, `drizzle-kit` `0.31.10` — no drift. PR #28 (vitest 5) stays blocked
 on locked D9 (Node 20 floor); release/tag still maintainer-gated (D14).
 
+Maintenance run 2026-09-16: maintainer published GitHub Pre-release
+`v0.1.0-alpha.1` at commit `3d82576`. npm was **not** published. Docs
+closeout (this line): ACTION.md / README recipes pin
+`Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`; P2.1 copy-paste recipes;
+CHANGELOG `[0.1.0-alpha.1]` expanded to the tagged tree; M2/M4 status
+notes updated. Do not create `@v1`. Do not publish to npm.
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
 2. M2 — prerelease/package hardening
 3. M3 — safe clean-replay capability ✅
-4. M4 — GitHub Action distribution 🚧 (first increment merged 2026-09-12; release/tag maintainer-gated)
+4. M4 — GitHub Action distribution 🚧 (source + tag `v0.1.0-alpha.1`; npm and `@v1` still gated)
 5. M5 — compatibility/policy hardening
 6. M6+ — adapters only when justified by evidence
 
@@ -283,8 +297,11 @@ See `docs/MILESTONES.md` for gates and exact completion criteria.
 
 Open issues track the next major work:
 
-- first npm prerelease preparation (#5) — milestone M2
-- GitHub Action packaging (#3) — milestone M4
+- first npm prerelease preparation (#5) — milestone M2 (GitHub tag exists;
+  npm still gated)
+- GitHub Action packaging (#3) — milestone M4 (source + tag
+  `v0.1.0-alpha.1` exist; moving `@v1` and npm remain maintainer-gated;
+  do not close until the maintainer confirms)
 
 The M1 validation issue (#1) is closed as completed; the M3 replay issue (#2)
 is closed as completed via PR #21.

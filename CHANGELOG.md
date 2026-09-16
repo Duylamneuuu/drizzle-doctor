@@ -4,14 +4,29 @@ All notable changes to this project will be documented here.
 
 The project intends to follow Semantic Versioning once packages are published.
 
-## [0.1.0-alpha.1] - 2026-09-04
+## [Unreleased]
 
-First npm prerelease. Prepared by the weekly maintainer/release review
-(package name `drizzle-doctor` is available on the npm registry, packed
-tarball verified). Publication itself requires maintainer authorization
-(`docs/DECISIONS.md` D14, `AGENTS.md`) and was not performed by automation.
+### Changed
 
-### Added
+- docs: consumer Action examples pin the published tag
+  `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`; P2.1 copy-paste recipes added
+  in `README.md` / `docs/ACTION.md`; `[0.1.0-alpha.1]` changelog expanded to
+  match the tagged GitHub Pre-release tree; M2/M4 status notes updated. npm
+  remains unpublished; no moving `@v1` tag was created.
+
+## [0.1.0-alpha.1] - 2026-09-16
+
+GitHub Pre-release tag
+[`v0.1.0-alpha.1`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.1)
+(commit `3d82576`). `package.json` remains `0.1.0-alpha.1`. This is a
+**GitHub source release only**; npm publish was not performed and remains
+maintainer-gated (`docs/DECISIONS.md` D14, `AGENTS.md`).
+
+The version string was chosen on 2026-09-04. The tagged tree includes work
+that landed on the same version line after that original stub (M3 replay, M4
+Action source, P1.* hardening). There is no separate version bump.
+
+### Added (originally prepared 2026-09-04)
 
 - initial TypeScript CLI skeleton
 - local Drizzle journal and SQL integrity audit
@@ -25,7 +40,7 @@ tarball verified). Publication itself requires maintainer authorization
 - compatibility notes documenting verified Drizzle behavior, finding mapping, and an upgrade checklist (`docs/COMPATIBILITY.md`)
 - custom migration table coverage in PostgreSQL integration tests
 
-### Changed
+### Changed (originally prepared 2026-09-04)
 
 - invalid CLI invocations (unknown command/option) now exit with code `2` instead of `1`, matching the documented error-level contract
 - running `drizzle-doctor` without a subcommand now shows help with exit code `2` instead of implicitly running `repo`; top-level `-m/--json` options moved to the `repo` command
@@ -34,21 +49,19 @@ tarball verified). Publication itself requires maintainer authorization
 - database connection errors are sanitized before display: the connection string, its password, and `password=` fragments are redacted from stderr output, so driver errors can never echo credentials (invariant D11); `--database-url` help text now points users at `DATABASE_URL` to keep credentials out of shell history and process listings
 - JSON reports now include `formatVersion: 1` identifying the report shape, and the machine-readable output contract (exit codes, field shapes, stable vs provisional fields, evolution policy) is documented in `docs/OUTPUT_CONTRACT.md` and pinned by `tests/output-contract.test.ts`
 
-## Unreleased
+### Added (on the tagged tree after the original stub)
 
-### Added
-
-- GitHub Action (M4, unreleased — no release/tag published): composite
-  `action.yml` wrapping `repo`/`status` (read-only; replay excluded),
-  SHA-pinned `actions/setup-node` (P1.12), `::add-mask::` + env-only secret
-  handling with no `--database-url` flag in the process listing (D11),
-  job summary + `::error` annotations rendered by the internal
-  `src/action-summary.ts` module (pinned by
+- GitHub Action (M4): composite `action.yml` wrapping `repo`/`status`
+  (read-only; replay excluded), SHA-pinned `actions/setup-node` (P1.12),
+  `::add-mask::` + env-only secret handling with no `--database-url` flag in
+  the process listing (D11), job summary + `::error` annotations rendered by
+  the internal `src/action-summary.ts` module (pinned by
   `tests/action-summary.test.ts`), `ok` output + CLI exit-code verdict,
   operator guide `docs/ACTION.md` (versioning, pinning update process,
   tested least-privilege `GRANT` recipe — P1.13), and CI smoke coverage in
-  `.github/workflows/action-smoke.yml` exercising the action in-repo in
-  both modes.
+  `.github/workflows/action-smoke.yml` exercising the action in-repo in both
+  modes. Consume the Action from tag `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`;
+  a moving `@v1` tag has not been created.
 - finding-code registry (P1.11): `FINDING_CODES` and `FINDING_SEVERITIES` in
   `src/types.ts` (also exported from the library entry) are the single
   machine-readable source of truth for all 22 finding codes and their default
@@ -57,7 +70,6 @@ tarball verified). Publication itself requires maintainer authorization
   a rename, silent severity change, undocumented new code, or doc drift fails
   loudly. `docs/FINDINGS.md` records the registry as the compatibility source
   of truth.
-
 - `replay` command (M3): applies the full local migration history from zero on
   an explicitly disposable PostgreSQL database. Requires an explicit
   `--database-url` (never reads `DATABASE_URL`) and `--confirm-destructive`,

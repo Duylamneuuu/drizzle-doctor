@@ -8,7 +8,7 @@
 
 `drizzle-doctor` is a CLI for auditing Drizzle migration history before deployment. It checks the migration journal on disk, compares it with PostgreSQL's Drizzle migration table, and flags states that Drizzle's timestamp high-watermark migration logic can skip. An opt-in `replay` command additionally proves that the full history applies cleanly from zero on an explicitly disposable PostgreSQL database.
 
-> **Status:** pre-alpha. The repository is being built in public; no npm release has been published yet.
+> **Status:** pre-alpha. A GitHub Pre-release exists at [`v0.1.0-alpha.1`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.1). No npm package has been published yet — local use is from source, and the composite Action is consumed from that tag (see [`docs/ACTION.md`](docs/ACTION.md)).
 
 ## Why
 
@@ -58,10 +58,13 @@ Safety rules:
 
 Database inspection (`repo`, `status`) is **read-only**. `drizzle-doctor` does not create schemas, apply migrations, rewrite journal files, or modify production data. `replay` is destructive by definition and is therefore isolated behind an explicit database URL plus `--confirm-destructive`; it must only ever target a disposable database.
 
-## Development quick start
+## Copy-paste recipes
 
-The repository ships a committed `package-lock.json`; use `npm ci` to install
-reproducibly (this is what CI runs).
+There is no npm package yet. Local recipes assume a clone of this repository
+(or the `v0.1.0-alpha.1` source tag). GitHub Action recipes pin that same
+immutable tag — a moving `@v1` tag does not exist yet.
+
+### Local repo audit
 
 ```bash
 npm ci
@@ -69,26 +72,86 @@ npm run build
 node dist/cli.js repo --migrations ./drizzle
 ```
 
-To compare against PostgreSQL:
+### Local PostgreSQL status audit
+
+Prefer `DATABASE_URL` over `--database-url` so the credential is not stored
+in shell history or the process listing.
 
 ```bash
+npm ci
+npm run build
 DATABASE_URL='postgres://...' node dist/cli.js status --migrations ./drizzle
 ```
 
-JSON output for CI/automation:
+JSON for CI/automation:
 
 ```bash
-node dist/cli.js status --migrations ./drizzle --json
+DATABASE_URL='postgres://...' node dist/cli.js status --migrations ./drizzle --json
 ```
 
 Custom Drizzle migration metadata location:
 
 ```bash
-node dist/cli.js status \
+DATABASE_URL='postgres://...' node dist/cli.js status \
   --migrations ./drizzle \
   --migrations-schema drizzle \
   --migrations-table __drizzle_migrations
 ```
+
+### GitHub Actions — repo-only audit (no secrets)
+
+```yaml
+name: drizzle-doctor
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1
+        with:
+          mode: repo
+          migrations: ./drizzle
+```
+
+### GitHub Actions — status audit (read-only PostgreSQL)
+
+```yaml
+name: drizzle-doctor
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1
+        with:
+          mode: status
+          migrations: ./drizzle
+          database-url: ${{ secrets.DRIZZLE_DOCTOR_DATABASE_URL }}
+```
+
+Least-privilege `GRANT` recipe, trusted-event guidance, and credential
+handling: [`docs/ACTION.md`](docs/ACTION.md). Replay is **not** part of the
+Action; it remains a local opt-in command against an explicitly disposable
+database (see [Clean replay](#clean-replay-opt-in-destructive) above).
+
+## Development quick start
+
+The repository ships a committed `package-lock.json`; use `npm ci` to install
+reproducibly (this is what CI runs). Then follow the [local recipes](#copy-paste-recipes) above.
 
 ## Exit codes
 
@@ -120,9 +183,9 @@ Finding codes and severities are documented in [`docs/FINDINGS.md`](docs/FINDING
 
 ## Planned roadmap
 
-- **v0.1:** repository audit + PostgreSQL migration-state audit
-- **v0.2:** clean replay check against a disposable PostgreSQL database (implemented; pending prerelease)
-- **v0.3:** GitHub Action + PR summary annotations
+- **v0.1:** repository audit + PostgreSQL migration-state audit (in the GitHub Pre-release; npm not published)
+- **v0.2:** clean replay check against a disposable PostgreSQL database (implemented; included in the GitHub Pre-release; npm not published)
+- **v0.3:** GitHub Action + PR summary annotations (Action source + tag `v0.1.0-alpha.1`; pin that tag — no moving `@v1` yet)
 - **v0.4:** stronger divergent-history detection and policy configuration
 - **v0.5+:** SQLite/D1, MySQL, Neon/Supabase/Turso-oriented adapters where they add real value
 
