@@ -4,9 +4,9 @@ This is the operator guide for the composite GitHub Action defined in
 [`action.yml`](../action.yml). The Action wraps the `drizzle-doctor` CLI so a
 repository gets the audit without a custom CI script.
 
-> Status: a GitHub Pre-release tag exists for Action consumption —
-> [`v0.1.0-alpha.2`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.2)
-> (commit `3d82576`). Pin consumers to that immutable tag. A moving major
+> Status: the `0.1.0-alpha.2` candidate is verified at commit
+> `c6a6211fe49f7e6348671058ff3d76e03aa5432d`, but its public tag/Release has
+> not yet been created. Pin consumers to that immutable SHA. A moving major
 > tag such as `@v1` has **not** been created (still pre-alpha) and must not
 > be invented by automation; the maintainer may advance one later. npm
 > publish is a **separate** maintainer-gated step and was not part of this
@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Audit migrations (no secrets)
-        uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2
+        uses: Duylamneuuu/drizzle-doctor@c6a6211fe49f7e6348671058ff3d76e03aa5432d
         with:
           mode: repo
           migrations: ./drizzle
@@ -66,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Audit migrations against PostgreSQL (read-only)
-        uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2
+        uses: Duylamneuuu/drizzle-doctor@c6a6211fe49f7e6348671058ff3d76e03aa5432d
         with:
           mode: status
           migrations: ./drizzle
@@ -171,7 +171,8 @@ Resolved 2026-09-09 for future use (example workflows, release tooling):
 
 ## Versioning / release strategy
 
-The current published pin is the immutable pre-release tag `v0.1.0-alpha.2`.
+The current alpha.2 candidate pin is immutable commit
+`c6a6211fe49f7e6348671058ff3d76e03aa5432d`; its public tag is pending.
 Recommended strategy (maintainer, not automation):
 
 - Publish immutable Git tags per release pointing at SHAs whose internal
@@ -179,8 +180,8 @@ Recommended strategy (maintainer, not automation):
 - Later, the maintainer may maintain a moving major tag (e.g. `v1`) advanced
   to each compatible release, so consumers can pin to `@v1` while the
   Action's own dependencies stay SHA-pinned internally. That moving tag
-  does **not** exist yet — pin to `@v0.1.0-alpha.2` until the maintainer
-  creates one.
+  does **not** exist yet — pin the verified full commit SHA until the
+  maintainer creates the alpha.2 tag.
 - Do not create or move release tags from automation; see issue #3
   ("Agent constraints").
 

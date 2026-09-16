@@ -74,16 +74,17 @@ The repository also contains the completed M1 validation milestone:
 - M1.4 false-positive review and upgrade checklist in `docs/COMPATIBILITY.md`
 - CLI exit-code contract enforced for invalid invocations
 
-The repository is still pre-alpha. GitHub Pre-release tag `v0.1.0-alpha.2`
-supersedes the initial alpha.1 tag for source/Action consumption. Do not
-assume npm publication, a stable public API, or production-scale
-compatibility testing has happened. Do not create a moving `@v1` Action tag.
+The repository is still pre-alpha. The `0.1.0-alpha.2` release candidate is
+verified at commit `c6a6211`; its public tag/Release is pending. Do not assume
+npm publication, a stable public API, or production-scale compatibility
+testing has happened. Do not create a moving `@v1` Action tag.
 
 ## 4. Current priority
 
 The next remaining **maintainer-gated** item is **npm publish (M2.5 / D14)**.
-Do not publish to npm. M4 Action source + GitHub tag `v0.1.0-alpha.2` exist;
-consumers pin `@v0.1.0-alpha.2`. A moving `@v1` tag must not be created
+Do not publish to npm. M4 Action source is release-ready; consumers pin the
+full verified alpha.2 candidate SHA until its tag exists. A moving `@v1` tag
+must not be created
 while still pre-alpha. Post-release docs closeout (P2.1 recipes, ACTION.md
 pin, changelog fold) is the current non-gated M4 follow-up.
 
@@ -282,18 +283,19 @@ closeout (this line): ACTION.md / README recipes pin
 CHANGELOG `[0.1.0-alpha.1]` expanded to the tagged tree; M2/M4 status
 notes updated. Do not create `@v1`. Do not publish to npm.
 
-Maintenance run 2026-09-16 (hardening follow-up): GitHub Pre-release
-`v0.1.0-alpha.2` supersedes alpha.1 for source/Action consumers. It rejects
-path-like journal tags, preserves original journal positions after malformed
-metadata, and prevents composite Action input interpolation into Bash source.
-npm remains unpublished; no moving `@v1` tag was created.
+Maintenance run 2026-09-16 (hardening follow-up): release candidate
+`0.1.0-alpha.2` is verified at commit `c6a6211`; public tag/Release creation
+remains pending. It rejects path-like journal tags, preserves original journal
+positions after malformed metadata, and prevents composite Action input
+interpolation into Bash source. npm remains unpublished; no moving `@v1` tag
+was created.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
 2. M2 — prerelease/package hardening
 3. M3 — safe clean-replay capability ✅
-4. M4 — GitHub Action distribution 🚧 (source + tag `v0.1.0-alpha.2`; npm and `@v1` still gated)
+4. M4 — GitHub Action distribution 🚧 (alpha.2 candidate SHA verified; tag, npm, and `@v1` still gated)
 5. M5 — compatibility/policy hardening
 6. M6+ — adapters only when justified by evidence
 
@@ -306,7 +308,8 @@ Open issues track the next major work:
 - first npm prerelease preparation (#5) — milestone M2 (GitHub tag exists;
   npm still gated)
 - GitHub Action packaging (#3) — milestone M4 (source + tag
-  `v0.1.0-alpha.2` exist; moving `@v1` and npm remain maintainer-gated;
+  `v0.1.0-alpha.1` exist; alpha.2 candidate SHA is verified; its tag, moving
+  `@v1`, and npm remain maintainer-gated;
   do not close until the maintainer confirms)
 
 The M1 validation issue (#1) is closed as completed; the M3 replay issue (#2)
