@@ -302,13 +302,14 @@ See `docs/MILESTONES.md` for gates and exact completion criteria.
 
 ## 5. Existing GitHub tasks
 
-Open issues track the next major work:
+Open issue tracking the next release gate:
 
 - first npm prerelease preparation (#5) — milestone M2 (GitHub tag exists;
   npm still gated)
-- GitHub Action packaging (#3) — milestone M4 delivered by source + immutable
-  tag `v0.1.0-alpha.2`; close as completed. Moving `@v1` and npm remain
-  separate maintainer-gated decisions.
+
+GitHub Action packaging issue #3 is closed as completed: milestone M4 was
+delivered by the Action source and immutable tag `v0.1.0-alpha.2`. A moving
+`@v1` tag and npm publication remain separate maintainer-gated decisions.
 
 The M1 validation issue (#1) is closed as completed; the M3 replay issue (#2)
 is closed as completed via PR #21.
