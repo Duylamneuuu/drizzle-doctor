@@ -28,12 +28,12 @@ Goal: prove that a fresh database can consume the full migration history in orde
 - [x] identify the first failing migration/statement (tag, breakpoint chunk, SQLSTATE)
 - [x] CI-friendly summary and JSON result (`replay` report section, `REPLAY_MIGRATION_FAILED`/`REPLAY_TARGET_NOT_EMPTY` findings)
 - [x] no dependency on a hosted SaaS
-- [x] included in GitHub Pre-release tag `v0.1.0-alpha.1` (npm publish remains maintainer-gated, D14)
+- [x] included in GitHub Pre-release tag `v0.1.0-alpha.2` (npm publish remains maintainer-gated, D14)
 
 ## v0.3 — GitHub-native distribution
 
 - [x] packaged GitHub Action (composite `action.yml`; pin
-      `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`)
+      `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2`)
 - [x] PR/job summary
 - [x] opt-in annotations for error findings
 - [x] examples for common Drizzle workflows (P2.1 copy-paste recipes)
