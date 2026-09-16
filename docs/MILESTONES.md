@@ -195,6 +195,8 @@ Prepare, but do not publish without explicit maintainer authorization
 - version choice ✅ — `0.1.0-alpha.1` (package.json + lockfile bumped;
   `--version` derives from package.json)
 - changelog entry ✅ — `CHANGELOG.md` `[0.1.0-alpha.1]` section prepared
+  2026-09-04; expanded 2026-09-16 to match the tagged tree (GitHub
+  Pre-release), without an npm publish or version bump
 - `npm pack --dry-run` ✅ — tarball contains only `dist/`, `README.md`,
   `LICENSE`, `package.json` (35 files, 18.0 kB)
 - install-and-smoke-test from tarball ✅ — CI `package-smoke` job installs
@@ -216,8 +218,11 @@ Prepare, but do not publish without explicit maintainer authorization
 - CI green ✅
 - no release is published automatically ✅ (publication is maintainer-gated)
 
-All pre-publication criteria hold; the milestone stays 🚧 only because the
-final npm publish / release-tag step requires maintainer authorization.
+All pre-publication criteria hold. A GitHub Pre-release tag `v0.1.0-alpha.1`
+exists (published 2026-09-16, commit `3d82576`); **npm publish has not been
+performed** and remains maintainer-gated (D14). The milestone stays 🚧 only
+for that npm publish step. A moving major Action tag (`@v1`) is a separate
+M4 concern and must not be created while still pre-alpha.
 
 ---
 
@@ -333,9 +338,14 @@ Depends on: stable enough M2 prerelease and M1 validation.
 > the internal `src/action-summary.ts` module, `ok` output + CLI exit-code
 > verdict, operator guide `docs/ACTION.md` with a live-verified
 > least-privilege `GRANT` recipe (P1.13), and CI smoke coverage in
-> `.github/workflows/action-smoke.yml`. Remaining before M4 is complete: the
-> Action release/tag publication itself, which is maintainer-gated (D14,
-> issue #3) and intentionally not done here.
+> `.github/workflows/action-smoke.yml`.
+>
+> GitHub Pre-release tag `v0.1.0-alpha.1` published 2026-09-16 (commit
+> `3d82576`). Consumers should pin `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`.
+> Remaining maintainer-gated pieces: **npm publish** (M2/D14; not required
+> for Action source consumption from the tag) and a future moving major tag
+> such as `@v1` (must not be created while still pre-alpha). Issue #3 stays
+> open until the maintainer confirms the M4 gate.
 
 ### Goal
 
@@ -367,11 +377,13 @@ Make the useful checks easy to add to a repository without requiring a custom CI
 
 ### Acceptance criteria
 
-- example consumer repository/workflow succeeds
-- repository-only mode requires no secrets
-- status mode works with read-only DB credentials
-- findings are visible without digging through raw logs
-- Action release/versioning strategy is documented
+- example consumer repository/workflow succeeds ✅ (in-repo smoke:
+  `.github/workflows/action-smoke.yml`; consumer pin is the published tag)
+- repository-only mode requires no secrets ✅
+- status mode works with read-only DB credentials ✅
+- findings are visible without digging through raw logs ✅
+- Action release/versioning strategy is documented ✅ (`docs/ACTION.md`;
+  current pin `@v0.1.0-alpha.1`; moving `@v1` is maintainer-later)
 
 ---
 
