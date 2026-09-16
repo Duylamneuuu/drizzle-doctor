@@ -6,6 +6,13 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] - 2026-09-16
+
+GitHub Pre-release tag
+[`v0.1.0-alpha.2`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.2).
+This hardening release supersedes `v0.1.0-alpha.1` for source and composite
+Action consumers. npm remains unpublished.
+
 ### Fixed
 
 - reject journal tags containing POSIX/Windows path syntax so repository
@@ -18,10 +25,9 @@ The project intends to follow Semantic Versioning once packages are published.
 ### Changed
 
 - docs: consumer Action examples pin the published tag
-  `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`; P2.1 copy-paste recipes added
-  in `README.md` / `docs/ACTION.md`; `[0.1.0-alpha.1]` changelog expanded to
-  match the tagged GitHub Pre-release tree; M2/M4 status notes updated. npm
-  remains unpublished; no moving `@v1` tag was created.
+  `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2`; release metadata and current
+  maintainer guidance now identify the hardening prerelease. npm remains
+  unpublished; no moving `@v1` tag was created.
 
 ## [0.1.0-alpha.1] - 2026-09-16
 

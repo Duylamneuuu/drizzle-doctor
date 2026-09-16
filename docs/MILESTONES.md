@@ -192,13 +192,14 @@ Prepare, but do not publish without explicit maintainer authorization
 
 - package name availability/ownership check ✅ — `drizzle-doctor` is not
   taken on the npm registry (checked 2026-09-04); no ownership conflict
-- version choice ✅ — `0.1.0-alpha.1` (package.json + lockfile bumped;
-  `--version` derives from package.json)
-- changelog entry ✅ — `CHANGELOG.md` `[0.1.0-alpha.1]` section prepared
-  2026-09-04; expanded 2026-09-16 to match the tagged tree (GitHub
-  Pre-release), without an npm publish or version bump
+- version choice ✅ — initial source release `0.1.0-alpha.1`; current
+  hardening release `0.1.0-alpha.2` (package.json + lockfile; `--version`
+  derives from package.json)
+- changelog entry ✅ — `CHANGELOG.md` contains the tagged alpha.1 history and
+  the alpha.2 migration-path/Action-input hardening release; npm remains
+  unpublished
 - `npm pack --dry-run` ✅ — tarball contains only `dist/`, `README.md`,
-  `LICENSE`, `package.json` (35 files, 18.0 kB)
+  `LICENSE`, `package.json` (43 files, about 30 kB)
 - install-and-smoke-test from tarball ✅ — CI `package-smoke` job installs
   the tarball in a consumer project and runs `--help`, `--version`,
   `repo --json`; local CLI runs against a real fixture match the README
@@ -218,11 +219,12 @@ Prepare, but do not publish without explicit maintainer authorization
 - CI green ✅
 - no release is published automatically ✅ (publication is maintainer-gated)
 
-All pre-publication criteria hold. A GitHub Pre-release tag `v0.1.0-alpha.1`
-exists (published 2026-09-16, commit `3d82576`); **npm publish has not been
-performed** and remains maintainer-gated (D14). The milestone stays 🚧 only
-for that npm publish step. A moving major Action tag (`@v1`) is a separate
-M4 concern and must not be created while still pre-alpha.
+All pre-publication criteria hold. GitHub Pre-release tag `v0.1.0-alpha.2`
+supersedes the initial `v0.1.0-alpha.1` tag for source and Action consumers;
+**npm publish has not been performed** and remains maintainer-gated (D14).
+The milestone stays 🚧 only for that npm publish step. A moving major Action
+tag (`@v1`) is a separate M4 concern and must not be created while still
+pre-alpha.
 
 ---
 
@@ -340,8 +342,8 @@ Depends on: stable enough M2 prerelease and M1 validation.
 > least-privilege `GRANT` recipe (P1.13), and CI smoke coverage in
 > `.github/workflows/action-smoke.yml`.
 >
-> GitHub Pre-release tag `v0.1.0-alpha.1` published 2026-09-16 (commit
-> `3d82576`). Consumers should pin `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`.
+> GitHub Pre-release tag `v0.1.0-alpha.2` supersedes the initial alpha.1 tag.
+> Consumers should pin `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2`.
 > Remaining maintainer-gated pieces: **npm publish** (M2/D14; not required
 > for Action source consumption from the tag) and a future moving major tag
 > such as `@v1` (must not be created while still pre-alpha). Issue #3 stays
@@ -383,7 +385,7 @@ Make the useful checks easy to add to a repository without requiring a custom CI
 - status mode works with read-only DB credentials ✅
 - findings are visible without digging through raw logs ✅
 - Action release/versioning strategy is documented ✅ (`docs/ACTION.md`;
-  current pin `@v0.1.0-alpha.1`; moving `@v1` is maintainer-later)
+  current pin `@v0.1.0-alpha.2`; moving `@v1` is maintainer-later)
 
 ---
 

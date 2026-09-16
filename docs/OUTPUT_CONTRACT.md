@@ -180,7 +180,7 @@ Healthy `repo` report:
   "ok": true,
   "generatedAt": "2026-09-04T02:00:00.000Z",
   "metadata": {
-    "toolVersion": "0.1.0-alpha.1",
+    "toolVersion": "0.1.0-alpha.2",
     "backend": "postgres",
     "reportFormatVersion": 1
   },
