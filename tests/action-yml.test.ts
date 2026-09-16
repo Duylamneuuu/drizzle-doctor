@@ -37,4 +37,17 @@ describe("action.yml audit step", () => {
     );
     expect(auditStep).toContain("set -u +e -o pipefail");
   });
+
+  it("passes caller inputs through environment variables, not Bash interpolation", () => {
+    const runBlocks = [...actionYml.matchAll(/      run: \|\n((?:        .*\n?)*)/g)]
+      .map((match) => match[1] ?? "")
+      .join("\n");
+
+    expect(runBlocks).not.toContain("${{ inputs.");
+    expect(actionYml).toContain("MODE_INPUT: ${{ inputs.mode }}");
+    expect(actionYml).toContain("MIGRATIONS_INPUT: ${{ inputs.migrations }}");
+    expect(actionYml).toContain("MIGRATIONS_SCHEMA_INPUT: ${{ inputs.migrations-schema }}");
+    expect(actionYml).toContain("MIGRATIONS_TABLE_INPUT: ${{ inputs.migrations-table }}");
+    expect(actionYml).toContain('args=("$mode" --migrations "$MIGRATIONS_INPUT")');
+  });
 });

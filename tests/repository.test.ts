@@ -121,4 +121,46 @@ describe('inspectMigrationRepository', () => {
     expect(result.findings.some((item) => item.code === 'MIGRATION_SQL_UNREADABLE')).toBe(true);
     expect(hasErrors(result.findings)).toBe(true);
   });
+
+  it('rejects migration tags that escape the migrations directory', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const migrationsDir = path.join(root, 'drizzle');
+    await mkdir(path.join(migrationsDir, 'meta'), { recursive: true });
+    await writeFile(
+      path.join(migrationsDir, 'meta', '_journal.json'),
+      JSON.stringify({
+        entries: [
+          { idx: 0, when: 1000, tag: '../outside', breakpoints: true },
+          { idx: 1, when: 2000, tag: '..\\outside', breakpoints: true },
+        ],
+      }),
+    );
+    // Before the guard, the journal entry above resolved to this file and
+    // the audit accepted/hashed content outside the migration repository.
+    await writeFile(path.join(root, 'outside.sql'), 'select secret_from_outside;');
+
+    const result = await inspectMigrationRepository(migrationsDir);
+
+    expect(result.migrations).toEqual([]);
+    expect(result.findings.map((finding) => finding.code)).toEqual([
+      'JOURNAL_ENTRY_INVALID',
+      'JOURNAL_ENTRY_INVALID',
+    ]);
+  });
+
+  it('uses original journal positions for index-sequence findings after an invalid entry', async () => {
+    const migrationsDir = await fixture(
+      [
+        { idx: 0, when: 1000, tag: '../invalid', breakpoints: true },
+        { idx: 1, when: 2000, tag: '0001_valid', breakpoints: true },
+      ],
+      { '0001_valid.sql': 'select 1;' },
+    );
+
+    const result = await inspectMigrationRepository(migrationsDir);
+
+    expect(result.migrations.map((migration) => migration.tag)).toEqual(['0001_valid']);
+    expect(result.findings.map((finding) => finding.code)).toEqual(['JOURNAL_ENTRY_INVALID']);
+  });
 });

@@ -9,6 +9,8 @@ type JournalEntry = {
   when: number;
   tag: string;
   breakpoints: boolean;
+  /** Original zero-based position in the journal (not part of LocalMigration). */
+  position: number;
 };
 
 type Journal = {
@@ -37,6 +39,16 @@ function parseEntry(value: unknown, position: number): JournalEntry | null {
   if (!Number.isInteger(raw.idx) || Number(raw.idx) < 0) return null;
   if (!Number.isFinite(raw.when) || Number(raw.when) < 0) return null;
   if (typeof raw.tag !== 'string' || raw.tag.trim().length === 0) return null;
+  // Drizzle migration tags name root-level `<tag>.sql` files. Reject both
+  // POSIX and Windows path syntax so a malformed/untrusted journal cannot
+  // make the audit read (or replay execute) a file outside migrationsDir.
+  if (
+    raw.tag.includes('\0') ||
+    raw.tag === '.' ||
+    raw.tag === '..' ||
+    path.posix.basename(raw.tag) !== raw.tag ||
+    path.win32.basename(raw.tag) !== raw.tag
+  ) return null;
   if (typeof raw.breakpoints !== 'boolean') return null;
 
   return {
@@ -44,6 +56,7 @@ function parseEntry(value: unknown, position: number): JournalEntry | null {
     when: Number(raw.when),
     tag: raw.tag,
     breakpoints: raw.breakpoints,
+    position,
   };
 }
 
@@ -118,7 +131,7 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
           'JOURNAL_ENTRY_INVALID',
           'error',
           `Journal entry at position ${position} has an invalid shape.`,
-          'Expected idx:number, when:number, tag:string, breakpoints:boolean.',
+          'Expected idx:number, when:number, a non-empty root-level file tag, and breakpoints:boolean.',
           { position },
         ),
       );
@@ -131,7 +144,8 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
   const seenWhen = new Map<number, string>();
   const seenTag = new Set<string>();
 
-  for (const [position, entry] of entries.entries()) {
+  for (const [validPosition, entry] of entries.entries()) {
+    const { position } = entry;
     const priorIdxTag = seenIdx.get(entry.idx);
     if (priorIdxTag) {
       findings.push(
@@ -184,8 +198,8 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
       );
     }
 
-    if (position > 0) {
-      const previous = entries[position - 1];
+    if (validPosition > 0) {
+      const previous = entries[validPosition - 1];
       if (previous && entry.when <= previous.when) {
         findings.push(
           finding(
@@ -228,7 +242,10 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
       continue;
     }
     migrations.push({
-      ...entry,
+      idx: entry.idx,
+      when: entry.when,
+      tag: entry.tag,
+      breakpoints: entry.breakpoints,
       sqlPath,
       hash: createHash('sha256').update(sql).digest('hex'),
     });

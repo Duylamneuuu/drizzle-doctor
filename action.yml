@@ -54,6 +54,13 @@ runs:
       id: audit
       shell: bash
       env:
+        # Treat every caller-supplied value as data. GitHub expressions are
+        # resolved into environment variables, never interpolated into Bash
+        # source where quotes or command syntax could be interpreted.
+        MODE_INPUT: ${{ inputs.mode }}
+        MIGRATIONS_INPUT: ${{ inputs.migrations }}
+        MIGRATIONS_SCHEMA_INPUT: ${{ inputs.migrations-schema }}
+        MIGRATIONS_TABLE_INPUT: ${{ inputs.migrations-table }}
         # The secret input travels only through the environment: it is never
         # interpolated into the script text, never passed as a CLI flag (which
         # would expose it in process listings), and never printed (D11 — the
@@ -66,7 +73,7 @@ runs:
         # this step before the exit code is recorded, skipping the summary
         # step and leaving the `ok` output unset.
         set -u +e -o pipefail
-        mode='${{ inputs.mode }}'
+        mode="$MODE_INPUT"
         if [ "$mode" != 'repo' ] && [ "$mode" != 'status' ]; then
           echo "drizzle-doctor: unsupported mode '$mode' (expected 'repo' or 'status')" >&2
           echo 'exit=2' >> "$GITHUB_OUTPUT"
@@ -75,9 +82,9 @@ runs:
         if [ -n "${DATABASE_URL:-}" ]; then
           echo "::add-mask::$DATABASE_URL"
         fi
-        args=("$mode" --migrations '${{ inputs.migrations }}')
+        args=("$mode" --migrations "$MIGRATIONS_INPUT")
         if [ "$mode" = 'status' ]; then
-          args+=(--migrations-schema '${{ inputs.migrations-schema }}' --migrations-table '${{ inputs.migrations-table }}')
+          args+=(--migrations-schema "$MIGRATIONS_SCHEMA_INPUT" --migrations-table "$MIGRATIONS_TABLE_INPUT")
         fi
         # status reads the URL from DATABASE_URL (set from the secret input
         # via the step environment above); the CLI --database-url flag is
@@ -90,6 +97,8 @@ runs:
     - name: Publish summary and annotations
       id: summary
       shell: bash
+      env:
+        AUDIT_EXIT: ${{ steps.audit.outputs.exit }}
       run: |
         set -euo pipefail
         script="$RUNNER_TEMP/drizzle-doctor-summary.mjs"
@@ -134,13 +143,18 @@ runs:
         SCRIPT_EOF
         ACTION_PATH="$GITHUB_ACTION_PATH" \
           REPORT_PATH="$RUNNER_TEMP/drizzle-doctor-report.json" \
-          AUDIT_EXIT='${{ steps.audit.outputs.exit }}' \
           node "$script"
 
     - name: Report audit result
       shell: bash
+      env:
+        AUDIT_EXIT: ${{ steps.audit.outputs.exit }}
       run: |
-        code='${{ steps.audit.outputs.exit }}'
+        code="$AUDIT_EXIT"
+        case "$code" in
+          0|1|2) ;;
+          *) echo "drizzle-doctor: invalid audit exit code" >&2; exit 2 ;;
+        esac
         if [ "$code" != '0' ]; then
           echo "drizzle-doctor: audit exit $code — see the job summary and annotations above." >&2
         fi
