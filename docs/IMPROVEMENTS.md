@@ -297,7 +297,8 @@ Delivered (2026-09-16): concise copy-paste examples for:
 - local repo audit ✅ (`README.md`)
 - local PostgreSQL status audit ✅ (`README.md`; `DATABASE_URL` preferred)
 - GitHub Actions repo-only audit ✅ (`README.md`, `docs/ACTION.md`; pin
-  `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2`)
+  `Duylamneuuu/drizzle-doctor@c6a6211fe49f7e6348671058ff3d76e03aa5432d`
+  pending the alpha.2 tag)
 - GitHub Actions status audit ✅ (same; read-only secret input)
 
 Replay stays optional/advanced in README with disposable-DB safety language
