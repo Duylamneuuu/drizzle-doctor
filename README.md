@@ -191,6 +191,19 @@ Finding codes and severities are documented in [`docs/FINDINGS.md`](docs/FINDING
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the high-level roadmap.
 
+## Known limitations
+
+- Compatibility is verified for journal-based PostgreSQL migrations from
+  `drizzle-orm@0.45.2` / `drizzle-kit@0.31.10`; the moving Drizzle v1
+  release-candidate folder/table format is not supported yet.
+- `status` verifies migration metadata consistency, not application-schema or
+  SQL correctness. A PASS is not a full database health guarantee.
+- `replay` must use a disposable PostgreSQL database and deliberately commits
+  per migration for diagnostics; upstream Drizzle wraps the whole batch in one
+  transaction. See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+- The GitHub Action exposes read-only `repo`/`status` modes only. npm remains
+  unpublished, and the programmatic library export is still pre-release.
+
 For the detailed engineering plan, see:
 
 - [`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md) — canonical start point for coding agents

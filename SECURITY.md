@@ -16,11 +16,18 @@ The core product is intentionally read-only:
 
 - repository checks read migration files and metadata
 - PostgreSQL checks run `SELECT` queries against migration metadata
-- the CLI does not apply migrations or repair production databases
+- the default `repo`/`status` commands do not apply migrations or repair
+  production databases
+- the separate `replay` command executes migration SQL only after an explicit
+  URL and `--confirm-destructive`; it must target a disposable database and
+  refuses a non-empty Drizzle migration table
 - database URLs are never included in reports
 
 A report may still reveal schema/table names and migration metadata. Treat generated reports according to the sensitivity of the repository/database being inspected.
 
 ## Out of scope
 
-Reports about intentionally malformed local fixtures that require the user to execute arbitrary untrusted SQL are not security vulnerabilities by themselves. Clean-replay functionality, when introduced, must run only against isolated disposable databases and will have its own threat-model review.
+Reports about intentionally malformed local fixtures that require the user to
+execute arbitrary untrusted SQL are not security vulnerabilities by themselves.
+The shipped clean-replay command is covered by [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
+and must run only against an isolated disposable database.

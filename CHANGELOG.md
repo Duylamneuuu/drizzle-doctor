@@ -6,6 +6,15 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- reject journal tags containing POSIX/Windows path syntax so repository
+  inspection and clean replay cannot resolve SQL outside the configured
+  migrations directory; preserve original journal positions when reporting
+  index-sequence findings after malformed entries
+- pass every caller-controlled composite Action input through quoted
+  environment variables instead of interpolating it into Bash source
+
 ### Changed
 
 - docs: consumer Action examples pin the published tag

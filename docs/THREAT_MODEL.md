@@ -45,7 +45,13 @@ Control: connection strings are accepted through arguments/environment but never
 
 ### Malicious SQL in a repository
 
-Current `repo`/`status` modes hash/read SQL; they do not execute it. A future `replay` command changes this threat boundary and therefore must use an isolated disposable database.
+Current `repo`/`status` modes hash/read SQL; they do not execute it. The
+separate `replay` command changes this threat boundary and therefore must use
+an isolated disposable database.
+
+Journal tags are accepted only as root-level file names (no POSIX or Windows
+path separators). This prevents malformed repository metadata from making an
+audit read, hash, or replay a file outside the configured migrations directory.
 
 ### SQL identifier injection
 
@@ -54,6 +60,10 @@ Custom migration schema/table names are identifier-quoted before query construct
 ### Compromised dependencies / CI
 
 Controls include Dependabot, CodeQL, least-privilege workflow permissions, and normal review/CI gates. Published GitHub Action/release workflows should pin third-party action revisions according to the project's release security policy before stable distribution.
+
+Composite Action inputs are mapped through environment variables and quoted as
+Bash array values. Caller-supplied paths/schema/table names are never
+interpolated into shell source.
 
 ### False reassurance
 
