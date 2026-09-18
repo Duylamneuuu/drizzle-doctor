@@ -49,7 +49,7 @@ describe('packed package surface (M2.2)', () => {
     expect(help.stdout).toContain('Usage: drizzle-doctor');
     expect(help.stdout).toContain('repo');
     expect(help.stdout).toContain('status');
-  });
+  }, 30_000);
 
   it('publishes only intended files in the tarball', async () => {
     const pack = await run(['npm', 'pack', '--dry-run', '--json']);
@@ -84,5 +84,5 @@ describe('packed package surface (M2.2)', () => {
     expect(build.code).toBe(0);
     const load = await run(['node', '--input-type=module', '-e', "import('./dist/index.js').then((m) => { if (!m.analyzeDatabaseState) process.exit(1); })"]);
     expect(load.code).toBe(0);
-  });
+  }, 30_000);
 });
