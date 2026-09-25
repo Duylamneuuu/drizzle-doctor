@@ -49,6 +49,20 @@ This is the reusable core that future adapters should target.
 
 Converts normalized results into stable text/JSON output. Finding codes are considered user-facing API once released.
 
+### `src/replay.ts`
+
+Clean-replay engine (M3): applies the full local migration history from zero
+on an explicitly disposable PostgreSQL target. It models the upstream
+PostgreSQL migrator: creates the migration schema/table with Drizzle's DDL,
+splits SQL on the literal `--> statement-breakpoint` marker, executes chunks
+verbatim, and inserts `(hash, created_at)` rows. See
+`docs/COMPATIBILITY.md` for the two deliberate diagnostic deviations
+(per-migration transactions, strict-clean target).
+
+Replay is destructive and reachable only through the CLI's explicit
+`replay --database-url <url> --confirm-destructive` invocation; the engine
+itself never reads `DATABASE_URL`.
+
 ### `src/cli.ts`
 
 Argument parsing, environment resolution, exit codes, and orchestration only.
@@ -79,9 +93,14 @@ If another Drizzle backend uses fundamentally different migration semantics, add
 
 ## Replay checks
 
-Clean replay is intentionally outside the initial read-only adapter. When implemented, replay must:
+Clean replay ships as the `replay` command (`src/replay.ts`, milestone M3):
 
-- require an explicitly disposable target or create its own ephemeral database
-- never run against the same URL used for read-only status checks by accident
-- capture which migration failed and why
-- remain optional; `repo` and `status` must stay useful without Docker or a hosted service
+- requires an explicitly supplied disposable target: `replay` never reads
+  `DATABASE_URL` and refuses to start without `--confirm-destructive`
+- requires the target's Drizzle migration table to be empty (a clean replay
+  from zero is only meaningful on a fresh table)
+- replays migrations in journal order, respecting Drizzle statement
+  breakpoints, and stops at the first failing migration
+- reports which migration and breakpoint chunk failed, with sanitized errors
+- remains optional: `repo` and `status` stay useful without replay
+  infrastructure

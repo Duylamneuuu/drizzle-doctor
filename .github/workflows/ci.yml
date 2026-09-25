@@ -21,12 +21,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      - run: npm install
+      - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - if: matrix.node == 22
-        run: npm pack --dry-run
 
   postgres-integration:
     runs-on: ubuntu-latest
@@ -51,5 +49,36 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npm test
+
+  package-smoke:
+    name: Packed package smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
+      - name: Install the packed tarball in a consumer project and run the CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          packdir="$(mktemp -d)"
+          npm pack --pack-destination "$packdir" >/dev/null
+          tarball="$(ls "$packdir"/drizzle-doctor-*.tgz)"
+          test -n "$tarball"
+          consumer="$(mktemp -d)"
+          cd "$consumer"
+          npm init -y >/dev/null 2>&1
+          npm install "$tarball" >/dev/null 2>&1
+          test "$(./node_modules/.bin/drizzle-doctor --version)" = "$version"
+          ./node_modules/.bin/drizzle-doctor --help | grep -q 'Usage: drizzle-doctor'
+          mkdir -p drizzle/meta
+          printf '%s\n' '{"entries":[{"idx":0,"when":1000,"tag":"0000_first","breakpoints":true}]}' > drizzle/meta/_journal.json
+          printf '%s\n' 'select 1;' > drizzle/0000_first.sql
+          test "$(./node_modules/.bin/drizzle-doctor repo --migrations ./drizzle >/dev/null 2>&1; echo $?)" = "0"
+          ./node_modules/.bin/drizzle-doctor repo --migrations ./drizzle --json | grep -q '"ok": true'

@@ -6,9 +6,9 @@
 
 > Never let Drizzle silently skip a migration again.
 
-`drizzle-doctor` is a read-only CLI for auditing Drizzle migration history before deployment. It checks the migration journal on disk, compares it with PostgreSQL's Drizzle migration table, and flags states that Drizzle's timestamp high-watermark migration logic can skip.
+`drizzle-doctor` is a CLI for auditing Drizzle migration history before deployment. It checks the migration journal on disk, compares it with PostgreSQL's Drizzle migration table, and flags states that Drizzle's timestamp high-watermark migration logic can skip. An opt-in `replay` command additionally proves that the full history applies cleanly from zero on an explicitly disposable PostgreSQL database.
 
-> **Status:** pre-alpha. The repository is being built in public; no npm release has been published yet.
+> **Status:** pre-alpha. GitHub Pre-release [`v0.1.0-alpha.2`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.2) is available for source and composite Action consumption. No npm package has been published (see [`docs/ACTION.md`](docs/ACTION.md)).
 
 ## Why
 
@@ -36,38 +36,122 @@ Drizzle's PostgreSQL migrator records a migration `hash` and `created_at`, then 
 - detects database migrations that no longer exist locally
 - distinguishes normal pending migrations from migrations that would be skipped by the current high-watermark state
 
-## Safety
+### Clean replay (opt-in, destructive)
 
-Database inspection is **read-only**. `drizzle-doctor` does not create schemas, apply migrations, rewrite journal files, or modify production data.
-
-## Development quick start
+`replay` applies the full local migration history from zero on an explicitly disposable PostgreSQL database, mirroring Drizzle's execution semantics (breakpoint splitting, `hash`/`created_at` bookkeeping rows). It stops at the first failing migration and reports the migration tag and statement that failed.
 
 ```bash
-npm install
+node dist/cli.js replay \
+  --migrations ./drizzle \
+  --database-url 'postgres://...' \
+  --confirm-destructive
+```
+
+Safety rules:
+
+- `replay` never reads `DATABASE_URL`; it requires an explicit `--database-url`
+- it refuses to start without `--confirm-destructive`
+- it refuses targets whose Drizzle migration table already has rows (a clean replay is only meaningful from an empty table)
+- every database error is sanitized; credentials never appear in output
+
+## Safety
+
+Database inspection (`repo`, `status`) is **read-only**. `drizzle-doctor` does not create schemas, apply migrations, rewrite journal files, or modify production data. `replay` is destructive by definition and is therefore isolated behind an explicit database URL plus `--confirm-destructive`; it must only ever target a disposable database.
+
+## Copy-paste recipes
+
+There is no npm package yet. Local recipes assume a clone of this repository
+or the `v0.1.0-alpha.2` source tag. GitHub Action recipes pin that immutable
+pre-release tag. A moving `@v1` tag does not exist yet.
+
+### Local repo audit
+
+```bash
+npm ci
 npm run build
 node dist/cli.js repo --migrations ./drizzle
 ```
 
-To compare against PostgreSQL:
+### Local PostgreSQL status audit
+
+Prefer `DATABASE_URL` over `--database-url` so the credential is not stored
+in shell history or the process listing.
 
 ```bash
+npm ci
+npm run build
 DATABASE_URL='postgres://...' node dist/cli.js status --migrations ./drizzle
 ```
 
-JSON output for CI/automation:
+JSON for CI/automation:
 
 ```bash
-node dist/cli.js status --migrations ./drizzle --json
+DATABASE_URL='postgres://...' node dist/cli.js status --migrations ./drizzle --json
 ```
 
 Custom Drizzle migration metadata location:
 
 ```bash
-node dist/cli.js status \
+DATABASE_URL='postgres://...' node dist/cli.js status \
   --migrations ./drizzle \
   --migrations-schema drizzle \
   --migrations-table __drizzle_migrations
 ```
+
+### GitHub Actions — repo-only audit (no secrets)
+
+```yaml
+name: drizzle-doctor
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2
+        with:
+          mode: repo
+          migrations: ./drizzle
+```
+
+### GitHub Actions — status audit (read-only PostgreSQL)
+
+```yaml
+name: drizzle-doctor
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2
+        with:
+          mode: status
+          migrations: ./drizzle
+          database-url: ${{ secrets.DRIZZLE_DOCTOR_DATABASE_URL }}
+```
+
+Least-privilege `GRANT` recipe, trusted-event guidance, and credential
+handling: [`docs/ACTION.md`](docs/ACTION.md). Replay is **not** part of the
+Action; it remains a local opt-in command against an explicitly disposable
+database (see [Clean replay](#clean-replay-opt-in-destructive) above).
+
+## Development quick start
+
+The repository ships a committed `package-lock.json`; use `npm ci` to install
+reproducibly (this is what CI runs). Then follow the [local recipes](#copy-paste-recipes) above.
 
 ## Exit codes
 
@@ -75,15 +159,50 @@ node dist/cli.js status \
 - `1` — at least one error-level finding was detected
 - `2` — the command could not complete (invalid arguments, unreadable input, connection failure, etc.)
 
+## Machine-readable output
+
+Add `--json` to `repo`, `status`, or `replay` for deterministic JSON on stdout. The full
+contract — exit codes, report/finding/summary field shapes, stable vs
+provisional fields, and the evolution policy — is defined in
+[`docs/OUTPUT_CONTRACT.md`](docs/OUTPUT_CONTRACT.md) and pinned by tests.
+
+| Field | Present in | Meaning |
+| --- | --- | --- |
+| `formatVersion` | all | report shape version (currently `1`) |
+| `command` | all | `"repo"`, `"status"`, or `"replay"` |
+| `ok` | all | `true` when there are no error-level findings (`false` correlates with exit code `1`; exit code `2` means the command did not produce a report) |
+| `generatedAt` | all | ISO-8601 timestamp |
+| `metadata` | all | `{ toolVersion, backend, migrationsSchema?, migrationsTable? (status/replay only), reportFormatVersion }` — compatibility metadata, no hosts/URLs/credentials |
+| `repository` | all | `{ migrationsDir, journalPath, migrationCount, orphanSqlFiles }` |
+| `database` | `status` only | `{ schema, table, tableExists, rowCount, maxCreatedAt }` |
+| `summary` | `status` only | `{ local, database, applied, pending, skippedHazards, hashMismatches, databaseOnly }` |
+| `replay` | `replay` only | `{ schema, table, total, applied, blocked?, blockedRowCount?, firstFailure? }` |
+| `findings` | all | array of `{ code, severity, message, hint?, details? }` |
+
+Finding codes and severities are documented in [`docs/FINDINGS.md`](docs/FINDINGS.md). The project is pre-release: the field set may grow additively, and finding codes and severities are treated as user-facing API once released.
+
 ## Planned roadmap
 
-- **v0.1:** repository audit + PostgreSQL migration-state audit
-- **v0.2:** clean replay check against ephemeral PostgreSQL
-- **v0.3:** GitHub Action + PR summary annotations
+- **v0.1:** repository audit + PostgreSQL migration-state audit (in the GitHub Pre-release; npm not published)
+- **v0.2:** clean replay check against a disposable PostgreSQL database (implemented; included in the GitHub Pre-release; npm not published)
+- **v0.3:** GitHub Action + PR summary annotations (published in `v0.1.0-alpha.2`; no moving `@v1` yet)
 - **v0.4:** stronger divergent-history detection and policy configuration
 - **v0.5+:** SQLite/D1, MySQL, Neon/Supabase/Turso-oriented adapters where they add real value
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the high-level roadmap.
+
+## Known limitations
+
+- Compatibility is verified for journal-based PostgreSQL migrations from
+  `drizzle-orm@0.45.2` / `drizzle-kit@0.31.10`; the moving Drizzle v1
+  release-candidate folder/table format is not supported yet.
+- `status` verifies migration metadata consistency, not application-schema or
+  SQL correctness. A PASS is not a full database health guarantee.
+- `replay` must use a disposable PostgreSQL database and deliberately commits
+  per migration for diagnostics; upstream Drizzle wraps the whole batch in one
+  transaction. See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+- The GitHub Action exposes read-only `repo`/`status` modes only. npm remains
+  unpublished, and the programmatic library export is still pre-release.
 
 For the detailed engineering plan, see:
 

@@ -44,6 +44,16 @@ body:
     validations:
       required: true
   - type: textarea
+    id: migration-state
+    attributes:
+      label: Migration repository state
+      description: |
+        Include the relevant `meta/_journal.json` entries (idx / when / tag)
+        and the affected SQL file names, or a small synthetic fixture. Never
+        paste credentials, connection strings, or private SQL dumps.
+    validations:
+      required: false
+  - type: textarea
     id: reproduction
     attributes:
       label: Minimal reproduction

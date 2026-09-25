@@ -7,9 +7,12 @@ import { Command, CommanderError } from 'commander';
 
 import { analyzeDatabaseState } from './analyze.js';
 import { readPostgresMigrationState } from './postgres.js';
+import { replayMigrations } from './replay.js';
 import { inspectMigrationRepository } from './repository.js';
-import { createRepoReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
+import { createRepoReport, createReplayReport, createStatusReport, formatJsonReport, formatTextReport } from './report.js';
+import { redactConnectionString } from './sanitize.js';
 import { hasErrors } from './types.js';
+import type { DatabaseSnapshot } from './types.js';
 
 const require = createRequire(import.meta.url);
 const packageVersion = require('../package.json').version as string;
@@ -23,6 +26,13 @@ interface StatusOptions extends RepoOptions {
   databaseUrl?: string;
   migrationsSchema: string;
   migrationsTable: string;
+}
+
+interface ReplayOptions extends RepoOptions {
+  databaseUrl?: string;
+  migrationsSchema: string;
+  migrationsTable: string;
+  confirmDestructive?: boolean;
 }
 
 function printReport(report: ReturnType<typeof createRepoReport>, json = false): void {
@@ -48,13 +58,60 @@ async function runStatus(options: StatusOptions): Promise<void> {
     throw new Error('Missing database URL. Pass --database-url or set DATABASE_URL.');
   }
 
-  const database = await readPostgresMigrationState({
-    connectionString,
-    schema: options.migrationsSchema,
-    table: options.migrationsTable,
-  });
+  let database: DatabaseSnapshot;
+  try {
+    database = await readPostgresMigrationState({
+      connectionString,
+      schema: options.migrationsSchema,
+      table: options.migrationsTable,
+    });
+  } catch (error) {
+    // Never let a driver error echo the connection string or its password
+    // (invariant D11). The original error is preserved as `cause` only.
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(redactConnectionString(rawMessage, connectionString), { cause: error });
+  }
   const analysis = analyzeDatabaseState(inspection.migrations, database);
   printReport(createStatusReport(inspection, database, analysis), Boolean(options.json));
+}
+
+async function runReplay(options: ReplayOptions): Promise<void> {
+  const inspection = await inspectMigrationRepository(options.migrations);
+
+  if (hasErrors(inspection.findings)) {
+    printReport(createRepoReport(inspection, 'replay'), Boolean(options.json));
+    return;
+  }
+
+  // Replay is destructive and must never silently reuse status credentials
+  // (decisions D10/D12): it requires an explicit --database-url and an
+  // affirmative --confirm-destructive flag; DATABASE_URL is never consulted.
+  if (!options.databaseUrl) {
+    throw new Error(
+      'Missing database URL. replay requires an explicit --database-url and never reads DATABASE_URL, because replay applies migrations and must target an explicitly disposable database.',
+    );
+  }
+  if (!options.confirmDestructive) {
+    throw new Error(
+      'Refusing to run replay without --confirm-destructive. replay applies every pending migration to the target database and creates the Drizzle migration schema/table. Point it at an explicitly disposable database.',
+    );
+  }
+
+  let result;
+  try {
+    result = await replayMigrations({
+      connectionString: options.databaseUrl,
+      schema: options.migrationsSchema,
+      table: options.migrationsTable,
+      migrations: inspection.migrations,
+    });
+  } catch (error) {
+    // Never let a driver error echo the connection string or its password
+    // (invariant D11). The original error is preserved as `cause` only.
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(redactConnectionString(rawMessage, options.databaseUrl), { cause: error });
+  }
+  printReport(createReplayReport(inspection, result), Boolean(options.json));
 }
 
 const program = new Command();
@@ -76,12 +133,24 @@ program
   .command('status')
   .description('Compare local migrations with the PostgreSQL Drizzle migration table.')
   .option('-m, --migrations <dir>', 'Drizzle migrations directory', './drizzle')
-  .option('--database-url <url>', 'PostgreSQL connection URL (defaults to DATABASE_URL)')
+  .option('--database-url <url>', 'PostgreSQL connection URL (defaults to DATABASE_URL; prefer the environment variable so the credential stays out of shell history and process listings)')
   .option('--migrations-schema <schema>', 'Drizzle migration schema', 'drizzle')
   .option('--migrations-table <table>', 'Drizzle migration table', '__drizzle_migrations')
   .option('--json', 'Emit machine-readable JSON')
   .exitOverride()
   .action(async (options: StatusOptions) => runStatus(options));
+
+program
+  .command('replay')
+  .description('Apply the full migration history from zero on an explicitly disposable PostgreSQL database (destructive; requires --confirm-destructive).')
+  .option('-m, --migrations <dir>', 'Drizzle migrations directory', './drizzle')
+  .option('--database-url <url>', 'PostgreSQL connection URL for the disposable target (required; replay never reads DATABASE_URL)')
+  .option('--migrations-schema <schema>', 'Drizzle migration schema', 'drizzle')
+  .option('--migrations-table <table>', 'Drizzle migration table', '__drizzle_migrations')
+  .option('--confirm-destructive', 'Acknowledge that replay creates the migration schema/table and applies every pending migration to the target')
+  .option('--json', 'Emit machine-readable JSON')
+  .exitOverride()
+  .action(async (options: ReplayOptions) => runReplay(options));
 
 program.command('*', { hidden: true }).argument('[args...]').exitOverride().action((args: string[]) => {
   throw new Error(`unknown command '${args.join(' ')}'`);
@@ -91,13 +160,15 @@ program.exitOverride();
 
 program.parseAsync(process.argv).catch((error: unknown) => {
   if (error instanceof CommanderError) {
-    // Help/version requests are successful exits; a bare invocation shows help
-    // with a non-zero code; every other commander error means the command
-    // could not complete (unknown command/option), not that migration
-    // problems were found.
+    // Help/version requests are successful exits. A bare invocation with no
+    // subcommand shows help to stderr via commander.help; map it to exit 2
+    // (command could not complete) without printing the error's placeholder
+    // message. Every other commander error means the command could not
+    // complete (unknown command/option), not that migration problems were
+    // found.
     if (error.exitCode === 0) return;
-    if (error.code === 'commander.helpDisplayed') {
-      process.exitCode = 1;
+    if (error.code === 'commander.helpDisplayed' || error.code === 'commander.help') {
+      process.exitCode = 2;
       return;
     }
     process.stderr.write(`drizzle-doctor: ${error.message}\n`);

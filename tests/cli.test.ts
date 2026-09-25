@@ -57,6 +57,7 @@ describe('cli exit behavior', () => {
     expect(stdout).toContain('Usage: drizzle-doctor');
     expect(stdout).toContain('repo');
     expect(stdout).toContain('status');
+    expect(stdout).toContain('replay');
   });
 
   it('--version matches package.json and exits 0', async () => {
@@ -90,10 +91,64 @@ describe('cli exit behavior', () => {
     );
     const { code, stdout } = await run(['repo', '--migrations', dir, '--json']);
     expect(code).toBe(0);
-    const report = JSON.parse(stdout) as { ok: boolean; command: string; generatedAt: string };
+    const report = JSON.parse(stdout) as { ok: boolean; command: string; generatedAt: string; formatVersion: number };
     expect(report.ok).toBe(true);
     expect(report.command).toBe('repo');
+    expect(report.formatVersion).toBe(1);
     expect(typeof report.generatedAt).toBe('string');
+  });
+
+  it('failing repository in JSON mode exits 1 with ok=false (exit-code contract)', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const { code, stdout } = await run(['repo', '--migrations', root, '--json']);
+    expect(code).toBe(1);
+    const report = JSON.parse(stdout) as { ok: boolean; command: string; findings: Array<{ code: string }> };
+    expect(report.ok).toBe(false);
+    expect(report.command).toBe('repo');
+    expect(report.findings.some((finding) => finding.code === 'REPO_JOURNAL_MISSING')).toBe(true);
+  });
+
+  it('unreadable journal is a finding (exit 1), not an invalid-JSON misreport', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const migrationsDir = path.join(root, 'drizzle');
+    await mkdir(path.join(migrationsDir, 'meta'), { recursive: true });
+    // A directory in place of the journal file makes readFile throw
+    // deterministically (EISDIR) without depending on process permissions.
+    await mkdir(path.join(migrationsDir, 'meta', '_journal.json'));
+
+    const { code, stdout } = await run(['repo', '--migrations', migrationsDir]);
+    expect(code).toBe(1);
+    expect(stdout).toContain('ERROR [REPO_JOURNAL_UNREADABLE]');
+    expect(stdout).not.toContain('REPO_JOURNAL_INVALID_JSON');
+  });
+
+  it('unreadable referenced SQL file is a finding (exit 1), not an operational crash (exit 2)', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      {},
+    );
+    await mkdir(path.join(dir, '0000_first.sql'));
+
+    const { code, stdout, stderr } = await run(['repo', '--migrations', dir]);
+    expect(code).toBe(1);
+    expect(stdout).toContain('ERROR [MIGRATION_SQL_UNREADABLE]');
+    expect(stderr).toBe('');
+  });
+
+  it('unreadable input in JSON mode reports ok=false with the finding code', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const migrationsDir = path.join(root, 'drizzle');
+    await mkdir(path.join(migrationsDir, 'meta'), { recursive: true });
+    await mkdir(path.join(migrationsDir, 'meta', '_journal.json'));
+
+    const { code, stdout } = await run(['repo', '--migrations', migrationsDir, '--json']);
+    expect(code).toBe(1);
+    const report = JSON.parse(stdout) as { ok: boolean; findings: Array<{ code: string }> };
+    expect(report.ok).toBe(false);
+    expect(report.findings.some((finding) => finding.code === 'REPO_JOURNAL_UNREADABLE')).toBe(true);
   });
 
   it('unknown command exits 2, not 1', async () => {
@@ -108,6 +163,20 @@ describe('cli exit behavior', () => {
     expect(stderr).toContain("unknown option '--bogus-flag'");
   });
 
+  it('bare invocation with no subcommand shows help on stderr and exits 2', async () => {
+    // A bare `drizzle-doctor` must not silently default to any command: it
+    // prints usage to stderr and exits 2 (operational failure, exit-code
+    // contract), matching the CHANGELOG behavior since M1. The `commander.*`
+    // error codes differ by path (`commander.help` for a bare invocation vs
+    // `commander.helpDisplayed` for some usage errors), so this pins the
+    // observable contract rather than the code.
+    const { code, stdout, stderr } = await run([]);
+    expect(code).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).toContain('Usage: drizzle-doctor');
+    expect(stderr).not.toContain('(outputHelp)');
+  });
+
   it('status without a database URL exits 2 with an explanatory error', async () => {
     const dir = await repoFixture(
       [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
@@ -118,5 +187,89 @@ describe('cli exit behavior', () => {
     const { code, stderr } = await run(['status', '--migrations', dir], env);
     expect(code).toBe(2);
     expect(stderr).toContain('Missing database URL');
+  });
+
+  it('status connection failures never echo the database URL or password (D11)', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const env = { ...process.env };
+    delete env.DATABASE_URL;
+    const url = 'postgres://doctor:sup3r-s3cret@127.0.0.1:1/nope';
+    const { code, stdout, stderr } = await run(
+      ['status', '--migrations', dir, '--database-url', url],
+      env,
+    );
+    expect(code).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).not.toContain('sup3r-s3cret');
+    expect(stderr).not.toContain('postgres://doctor');
+    expect(stderr).not.toContain(url);
+  });
+});
+
+describe('replay safety guards (M3)', () => {
+  it('replay without --database-url exits 2 and never reads DATABASE_URL', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    // Even with DATABASE_URL set, replay must refuse: it must never silently
+    // reuse status credentials for a destructive command (decision D10).
+    const env = { ...process.env, DATABASE_URL: 'postgres://doctor:hunter2-secret@127.0.0.1:5432/doctor' };
+    const { code, stderr } = await run(['replay', '--migrations', dir, '--confirm-destructive'], env);
+    expect(code).toBe(2);
+    expect(stderr).toContain('--database-url');
+    expect(stderr).not.toContain('hunter2-secret');
+  });
+
+  it('replay without --confirm-destructive refuses before connecting', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const env = { ...process.env };
+    delete env.DATABASE_URL;
+    // An unreachable target proves the guard fires before any connection is
+    // attempted: the error must be the refusal, not a network failure.
+    const { code, stderr } = await run(
+      ['replay', '--migrations', dir, '--database-url', 'postgres://doctor:x@127.0.0.1:1/nope'],
+      env,
+    );
+    expect(code).toBe(2);
+    expect(stderr).toContain('--confirm-destructive');
+    expect(stderr).not.toContain('ECONNREFUSED');
+    expect(stderr).not.toContain('error:'); // no driver error surfaces
+  });
+
+  it('replay connection failures never echo the database URL or password (D11)', async () => {
+    const dir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_first', breakpoints: true }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const env = { ...process.env };
+    delete env.DATABASE_URL;
+    const url = 'postgres://doctor:sup3r-s3cret@127.0.0.1:1/nope';
+    const { code, stdout, stderr } = await run(
+      ['replay', '--migrations', dir, '--database-url', url, '--confirm-destructive'],
+      env,
+    );
+    expect(code).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).not.toContain('sup3r-s3cret');
+    expect(stderr).not.toContain('postgres://doctor');
+    expect(stderr).not.toContain(url);
+  });
+
+  it('replay reports repository errors before touching the database', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
+    tempDirs.push(root);
+    const { code, stdout } = await run(['replay', '--migrations', root, '--json']);
+    expect(code).toBe(1);
+    const report = JSON.parse(stdout) as { command: string; ok: boolean; findings: Array<{ code: string }> };
+    expect(report.command).toBe('replay');
+    expect(report.ok).toBe(false);
+    expect(report.findings.some((finding) => finding.code === 'REPO_JOURNAL_MISSING')).toBe(true);
   });
 });

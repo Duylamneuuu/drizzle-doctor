@@ -97,6 +97,48 @@ it deserve error severity?
 | `MIGRATION_SQL_MISSING` | Broken checkout/folder. | Keep error — deploy would fail at `readMigrationFiles` |
 | `JOURNAL_INDEX_SEQUENCE` | Warning, not error: Drizzle ignores `idx`; non-contiguous indices do not change behavior | warning is correct |
 
+## Replay semantics (M3)
+
+The `replay` command (`src/replay.ts`) models the upstream PostgreSQL migrator
+for execution, with two deliberate diagnostic deviations. Verified against the
+same pinned `drizzle-orm@0.45.2` sources listed above.
+
+### Matches upstream
+
+- creates the migration schema and table if missing, using the same DDL as
+  `PgDialect.migrate` (`CREATE SCHEMA IF NOT EXISTS`, `CREATE TABLE IF NOT
+  EXISTS ... (id serial primary key, hash text not null, created_at bigint)`)
+- splits each migration's SQL on the literal `--> statement-breakpoint`
+  separator, exactly like `readMigrationFiles`
+- executes chunks verbatim with the session's default `search_path` — the
+  migrator does not set `search_path`, so unqualified objects land wherever
+  the session points (typically `public`); replay does the same
+- inserts a `(hash, created_at)` row after each applied migration, matching
+  the migrator's bookkeeping
+- skips nothing on a clean target: every local migration is replayed
+
+### Deliberate deviations (diagnostic, safe because the target is disposable)
+
+1. **Per-migration transactions.** The upstream migrator wraps the whole batch
+   in one transaction and rolls everything back on failure. replay instead
+   commits each migration individually so the first failing migration is
+   precisely identified and the disposable database retains applied state up
+   to the failure. Per-statement results are identical for ordinary DDL/DML
+   histories; exotic session/temp-state dependencies across migrations are
+   the only place behavior could differ.
+2. **Strict-clean target.** replay refuses to start when the migration table
+   already contains rows. A clean replay from zero is only meaningful on a
+   fresh table; skipping already-applied migrations could silently validate a
+   history that never applied end-to-end. Reset the disposable target and
+   re-run to continue after a failure.
+
+### Replay finding mapping
+
+| Finding | Meaning |
+| --- | --- |
+| `REPLAY_MIGRATION_FAILED` | A migration failed to apply; the run stopped at the first failure (tag, breakpoint-chunk index, SQLSTATE, sanitized message). |
+| `REPLAY_TARGET_NOT_EMPTY` | The target's migration table already has rows; nothing was applied. |
+
 ## Raising the pinned upstream version
 
 When a Drizzle release changes migration behavior:
@@ -109,3 +151,83 @@ When a Drizzle release changes migration behavior:
    semantics" section and the finding mapping if anything moved
 4. update `docs/ARCHITECTURE.md` if the modeled behavior changed
 5. treat any behavioral delta as a deliberate, documented product decision
+
+## Upstream watch (2026-09-04)
+
+Re-checked against the npm registry and `drizzle-orm` sources on 2026-09-04.
+
+### Stable line — unchanged — no action needed
+
+- `drizzle-orm@0.45.2` is still the latest **stable** release (`dist-tag
+  latest`, published 2026-03-27); `drizzle-kit@0.31.10` is the latest stable
+  kit and still generates the journal-based folder format this tool models.
+- `readMigrationFiles` on `drizzle-orm` `main` (checked 2026-09-04) is
+  unchanged: `meta/_journal.json`, `entry.when` → `folderMillis`,
+  `entry.breakpoints` → `bps`, whole-file SHA-256. All "Verified semantics"
+  above remain accurate for the stable line; no code or test change was
+  needed this week.
+
+### v1 release-candidate line — a separate compatibility track
+
+`drizzle-orm@1.0.0-rc.4` / `drizzle-kit@1.0.0-rc.4` (checked 2026-09-04)
+changes several modeled assumptions. Do not extend `status`/`repo` semantics
+to v1 tables or folders until a deliberate v1 compatibility decision is made
+(research queue item R2 tracks this):
+
+- Journal-based `readMigrationFiles` still exists in rc.4, but `drizzle-kit
+  up` migrates v1 projects to a new folder layout (per-migration folders,
+  no `journal.json`): https://orm.drizzle.team/docs/upgrade-v1
+- The PostgreSQL migration table is versioned. A new database gets
+  `id serial primary key, hash text NOT NULL, created_at bigint, name text,
+  applied_at timestamp with time zone DEFAULT now()`; existing v0 tables are
+  upgraded (`upgradeIfNeeded`, `drizzle-orm/src/up-migrations/pg.ts`).
+  `created_at` is still the journal millis at insert time.
+- The apply decision moved out of the single-row high-watermark select. The
+  rc.4 async PostgreSQL path reads all rows and filters local migrations in
+  `getMigrationsToRun` (`drizzle-orm/src/migrator.utils.ts`) by `name` set
+  membership (with `folderMillis`→name fallback formatting via
+  `formatToMillis`); there is no `order by created_at desc limit 1` watermark
+  in that path.
+- Upstream issue https://github.com/drizzle-team/drizzle-orm/issues/5769
+  (open, updated 2026-08-26) still reports silent skips caused by
+  high-watermark behavior in the v1 line; the rc.4 source inspected here
+  differs from that report, so the v1 line is still moving — re-verify
+  before modeling it.
+
+## Upstream watch (2026-09-15)
+
+Re-checked against the npm registry and the published `drizzle-orm` rc build
+on 2026-09-15 (inspected tarball `drizzle-orm@1.0.0-rc.5-5935859`,
+dist-tag `rc5`).
+
+### Stable line — unchanged — no action needed
+
+- `drizzle-orm@0.45.2` is still the latest **stable** release (`dist-tag
+  latest`); `drizzle-kit@0.31.10` is still the latest stable kit. All
+  "Verified semantics" above remain accurate for the stable line; no code
+  or test change was needed.
+
+### v1 release-candidate line — diverged further, still out of scope (R2)
+
+`drizzle-orm@1.0.0-rc.5` changes one modeled assumption relative to the
+rc.4 notes above; everything else is confirmed unchanged. Do not extend
+`status`/`repo` semantics to v1 tables or folders until a deliberate v1
+compatibility decision is made (research queue item R2 tracks this):
+
+- `readMigrationFiles` now **hard-rejects** the legacy layout: when
+  `<migrationsFolder>/meta/_journal.json` exists it throws
+  `Error("We detected that you have old drizzle-kit migration folders.
+  You must upgrade drizzle-kit and run \"drizzle-kit up\"")`
+  (`migrator.js` in the published rc.5 build). In rc.4 the journal-based
+  reader still existed; in rc.5 legacy folders must be migrated via
+  `drizzle-kit up` to the per-migration-folder layout before the v1
+  migrator will run at all.
+- The versioned PostgreSQL migration table is unchanged from rc.4:
+  `upgradeIfNeeded` (`up-migrations/pg.js` in the published build) adds
+  `name text` and `applied_at timestamp with time zone DEFAULT now()` via
+  `ADD COLUMN IF NOT EXISTS` and backfills both columns for existing rows.
+  `created_at` is still the journal millis at insert time.
+- The apply decision is unchanged from rc.4: `getMigrationsToRun`
+  (`migrator.utils.js` in the published build) filters local migrations by
+  `name` set membership (`formatToMillis` fallback still present); there
+  is still no `order by created_at desc limit 1` watermark in that path.

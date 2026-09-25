@@ -38,7 +38,7 @@ export function analyzeDatabaseState(
         'DATABASE_MIGRATIONS_TABLE_MISSING',
         'info',
         `Migration table ${database.schema}.${database.table} does not exist.`,
-        'This is normal before the first migration. All local migrations are considered pending.',
+        'This is normal before the first migration; Drizzle would create the table and apply all local migrations. A missing table reports only that no Drizzle migration metadata was found here — it does not prove the database itself is empty.',
       ),
     );
     summary.pending = localMigrations.length;

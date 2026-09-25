@@ -108,17 +108,28 @@ Evidence needed:
 - package import smoke tests
 - clear stable export surface
 
-### Q2 — Should JSON have an explicit format version?
+### Q2 — Should JSON have an explicit format version? ✅ resolved (2026-09-04)
 
-Likely useful before external automation grows, but define it only with a documented evolution policy.
+Yes. Reports carry `formatVersion: 1` and `docs/OUTPUT_CONTRACT.md` defines an
+evolution policy: additive field additions keep the version; breaking shape
+changes bump it with changelog migration notes. `formatVersion` identifies the
+report shape, not the tool version.
+
+Evidence: M2.4 output-contract work (`docs/OUTPUT_CONTRACT.md`,
+`tests/output-contract.test.ts`).
 
 ### Q3 — What is the safest long-term credential input UX?
 
 `DATABASE_URL` is conventional. `--database-url` is convenient but may expose secrets in shell history/process lists. Research user workflows before adding more mechanisms.
 
-### Q4 — How should clean replay obtain PostgreSQL?
+### Q4 — How should clean replay obtain PostgreSQL? ✅ resolved (2026-09-05)
 
-Options include tool-managed ephemeral infrastructure or an explicitly supplied disposable database. Choose based on portability, safety and CI usability.
+Chosen: an explicitly supplied disposable target with an affirmative
+destructive-mode flag. `replay` requires an explicit `--database-url` (it
+never reads `DATABASE_URL`) plus `--confirm-destructive`, and refuses to run
+when the target's migration table already has rows.
+
+Evidence: M3 implementation (`src/replay.ts`, `tests/replay.integration.test.ts`). A tool-managed ephemeral database (Docker/spawned postgres) was rejected for portability: it would require Docker or a bundled server binary, contradicting the "low operational complexity" decision principle and making `replay` unusable in many CI environments. The explicit-supply model works anywhere a PostgreSQL URL can be provisioned (CI service containers, ephemeral hosts) and keeps the disposable-target semantics fully explicit (D10).
 
 ### Q5 — What should the first reusable GitHub Action distribution model be?
 
@@ -127,6 +138,12 @@ Decide packaging/version pinning only after the npm/package surface is validated
 ### Q6 — Which Drizzle versions should be claimed as supported?
 
 Do not guess a broad range. Build the compatibility matrix from current upstream review, fixtures and real reports.
+
+Evidence (2026-09-04): stable line (orm 0.45.2 / kit 0.31.10) verified
+unchanged, semantics in `docs/COMPATIBILITY.md` accurate. The v1 line
+(1.0.0-rc.4) is a separate format (see "Upstream watch" in
+`docs/COMPATIBILITY.md`) and must not be claimed as supported until a
+deliberate compatibility decision.
 
 ### Q7 — What is the next backend after PostgreSQL?
 

@@ -11,7 +11,7 @@ Thanks for helping improve `drizzle-doctor`.
 5. Run:
 
 ```bash
-npm install
+npm ci
 npm run typecheck
 npm test
 npm run build
@@ -20,7 +20,7 @@ npm run build
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev -- repo --migrations ./path/to/drizzle
 ```
 

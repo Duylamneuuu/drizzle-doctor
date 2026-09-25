@@ -4,9 +4,44 @@ All notable changes to this project will be documented here.
 
 The project intends to follow Semantic Versioning once packages are published.
 
-## Unreleased
+## [Unreleased]
 
-### Added
+## [0.1.0-alpha.2] - 2026-09-16
+
+GitHub Pre-release
+[`v0.1.0-alpha.2`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.2)
+points to verified commit `c6a6211`. This hardening release supersedes alpha.1
+for source and composite Action consumers. npm remains unpublished.
+
+### Fixed
+
+- reject journal tags containing POSIX/Windows path syntax so repository
+  inspection and clean replay cannot resolve SQL outside the configured
+  migrations directory; preserve original journal positions when reporting
+  index-sequence findings after malformed entries
+- pass every caller-controlled composite Action input through quoted
+  environment variables instead of interpolating it into Bash source
+
+### Changed
+
+- docs: consumer Action examples pin published immutable tag
+  `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.2`; release metadata and maintainer
+  guidance identify the hardening prerelease. npm remains unpublished; no
+  moving `@v1` tag was created.
+
+## [0.1.0-alpha.1] - 2026-09-16
+
+GitHub Pre-release tag
+[`v0.1.0-alpha.1`](https://github.com/Duylamneuuu/drizzle-doctor/releases/tag/v0.1.0-alpha.1)
+(commit `3d82576`). `package.json` remains `0.1.0-alpha.1`. This is a
+**GitHub source release only**; npm publish was not performed and remains
+maintainer-gated (`docs/DECISIONS.md` D14, `AGENTS.md`).
+
+The version string was chosen on 2026-09-04. The tagged tree includes work
+that landed on the same version line after that original stub (M3 replay, M4
+Action source, P1.* hardening). There is no separate version bump.
+
+### Added (originally prepared 2026-09-04)
 
 - initial TypeScript CLI skeleton
 - local Drizzle journal and SQL integrity audit
@@ -20,9 +55,77 @@ The project intends to follow Semantic Versioning once packages are published.
 - compatibility notes documenting verified Drizzle behavior, finding mapping, and an upgrade checklist (`docs/COMPATIBILITY.md`)
 - custom migration table coverage in PostgreSQL integration tests
 
-### Changed
+### Changed (originally prepared 2026-09-04)
 
 - invalid CLI invocations (unknown command/option) now exit with code `2` instead of `1`, matching the documented error-level contract
 - running `drizzle-doctor` without a subcommand now shows help with exit code `2` instead of implicitly running `repo`; top-level `-m/--json` options moved to the `repo` command
 - `--version` derives from `package.json` instead of a hard-coded copy
 - pinned `drizzle-orm@0.45.2` as an exact devDependency for compatibility tests; `package-lock.json` committed
+- database connection errors are sanitized before display: the connection string, its password, and `password=` fragments are redacted from stderr output, so driver errors can never echo credentials (invariant D11); `--database-url` help text now points users at `DATABASE_URL` to keep credentials out of shell history and process listings
+- JSON reports now include `formatVersion: 1` identifying the report shape, and the machine-readable output contract (exit codes, field shapes, stable vs provisional fields, evolution policy) is documented in `docs/OUTPUT_CONTRACT.md` and pinned by `tests/output-contract.test.ts`
+
+### Added (on the tagged tree after the original stub)
+
+- GitHub Action (M4): composite `action.yml` wrapping `repo`/`status`
+  (read-only; replay excluded), SHA-pinned `actions/setup-node` (P1.12),
+  `::add-mask::` + env-only secret handling with no `--database-url` flag in
+  the process listing (D11), job summary + `::error` annotations rendered by
+  the internal `src/action-summary.ts` module (pinned by
+  `tests/action-summary.test.ts`), `ok` output + CLI exit-code verdict,
+  operator guide `docs/ACTION.md` (versioning, pinning update process,
+  tested least-privilege `GRANT` recipe — P1.13), and CI smoke coverage in
+  `.github/workflows/action-smoke.yml` exercising the action in-repo in both
+  modes. Consume the Action from tag `Duylamneuuu/drizzle-doctor@v0.1.0-alpha.1`;
+  a moving `@v1` tag has not been created.
+- finding-code registry (P1.11): `FINDING_CODES` and `FINDING_SEVERITIES` in
+  `src/types.ts` (also exported from the library entry) are the single
+  machine-readable source of truth for all 22 finding codes and their default
+  severities. `tests/findings-registry.test.ts` pins the registry against the
+  `docs/FINDINGS.md` table and against every code the implementation emits, so
+  a rename, silent severity change, undocumented new code, or doc drift fails
+  loudly. `docs/FINDINGS.md` records the registry as the compatibility source
+  of truth.
+- `replay` command (M3): applies the full local migration history from zero on
+  an explicitly disposable PostgreSQL database. Requires an explicit
+  `--database-url` (never reads `DATABASE_URL`) and `--confirm-destructive`,
+  refuses targets whose migration table already has rows, replays in journal
+  order with Drizzle breakpoint splitting, and stops at the first failing
+  migration with the tag, statement index, SQLSTATE, and a sanitized error.
+  New findings: `REPLAY_MIGRATION_FAILED`, `REPLAY_TARGET_NOT_EMPTY`. The
+  `replay` report section and findings are pinned by
+  `tests/output-contract.test.ts`, unit/integration coverage in
+  `tests/replay.test.ts` and `tests/replay.integration.test.ts`, and CLI
+  safety guards in `tests/cli.test.ts`.
+- filesystem/path error UX (P1.7): new findings `REPO_JOURNAL_UNREADABLE`
+  (journal exists but cannot be read, e.g. permissions or not a regular file)
+  and `MIGRATION_SQL_UNREADABLE` (referenced SQL file exists but cannot be
+  read). Previously an unreadable journal was misreported as
+  `REPO_JOURNAL_INVALID_JSON`, and an unreadable SQL file crashed the CLI with
+  exit `2` and no report instead of producing an error finding with exit `1`.
+  Unreadable local migration input is now always a finding with a hint;
+  `docs/OUTPUT_CONTRACT.md` clarifies that exit `2` is reserved for failures
+  that prevent any report from being produced.
+- actionable finding hints (P1.2) and missing-table limitation (P1.4): every
+  finding the tool emits now carries a `hint` (what to inspect next), and the
+  `DATABASE_MIGRATIONS_TABLE_MISSING` hint documents that a missing table
+  reports only the absence of Drizzle migration metadata, not that the
+  database itself is empty. Pinned by `tests/finding-hints.test.ts`. Hint
+  contents remain provisional per `docs/OUTPUT_CONTRACT.md`; no finding code,
+  severity, or report shape changed.
+- CLI usage-error hardening (M2.3/P1.3): a bare invocation with no subcommand
+  now reliably shows usage on stderr with exit `2` instead of leaking
+  commander's `(outputHelp)` placeholder into stderr, and the behavior is
+  pinned by a new `tests/cli.test.ts` regression test. Previously only some
+  usage-error paths (`commander.helpDisplayed`, exit `1`) were handled while
+  the bare-invocation path (`commander.help`) fell through to a generic
+  message writer. No finding code, report shape, or other exit changed.
+- report compatibility metadata (P1.5): every JSON report now carries a
+  `metadata` object — `toolVersion` (runtime `package.json` version),
+  `backend: "postgres"`, and `reportFormatVersion` (mirroring
+  `formatVersion`) on all commands, plus `migrationsSchema`/`migrationsTable`
+  on `status` and `replay` (from the resolved database snapshot / replay
+  target; omitted on `repo`, which never connects). No host, URL, or
+  credential material is included (D11). Purely additive per the
+  `docs/OUTPUT_CONTRACT.md` evolution policy, so `formatVersion` stays `1`.
+  Pinned by `tests/report-metadata.test.ts`; documented in
+  `docs/OUTPUT_CONTRACT.md` and `README.md`.

@@ -9,7 +9,7 @@ export interface PostgresReadOptions {
   timeoutMs?: number;
 }
 
-function quoteIdentifier(identifier: string): string {
+export function quoteIdentifier(identifier: string): string {
   return `"${identifier.replaceAll('"', '""')}"`;
 }
 
