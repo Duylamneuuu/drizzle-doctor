@@ -6,6 +6,22 @@ Scheduled daily autonomous run. Read `docs/AI_HANDOFF.md`, `docs/MILESTONES.md`,
 
 Issue/PR triage, milestone organization, documentation consistency, and developer experience. This automation deliberately does NOT do feature engineering, upstream/semantics work, or dependency merging — those belong to Automation 1 (core maintainer) and Automation 2 (upstream & security). If you would start that kind of work, stop and leave it for them.
 
+## Preflight (before anything else)
+
+1. `gh auth status` and `git lfs version` must both succeed. PR publication fails with `git: 'lfs' is not a git command` when the sandbox was replaced without re-running setup; run `sandbox_control` op `setup` (it installs git-lfs) and retry instead of working around it.
+2. Start each change from a fresh branch off the remote default: `git fetch origin main`, then `git checkout -b <thread-branch>--<slug> origin/main`. The local checkout is not guaranteed to be current.
+3. Read live state with `gh` (`gh issue list --state all`, `gh pr list`, `gh label list`, `gh api repos/<owner>/<repo>/milestones`). Large outputs may come back condensed; page through them with the retained-result tool and prefer narrow `--json`/`--jq` queries.
+
+## How triage actions are performed
+
+- Labels: `gh label create <name> --color <hex> --description <text>`; apply with `gh issue edit <n> --add-label ...` (or `gh pr edit`).
+- Milestones: `gh api -X POST repos/<owner>/<repo>/milestones -f title=... -f description=...`, then `gh issue edit <n> --milestone <title>`.
+- Closing: `gh issue close <n> --reason completed|"not planned" --comment <explanation>`. For a duplicate, use `not planned` and link the surviving issue in the comment.
+
+## Merge limits
+
+`gh pr merge` (including `--auto`) may be refused by the workspace, and repository auto-merge is currently disabled. When required CI is green and merging is refused, report the PR as ready (number, head SHA, checks) and leave the merge to the owner. Do not retry variants or route around the refusal, and never start a second PR on the same area while one is waiting.
+
 ## Every run
 
 1. Issues: review all open issues. Classify each: is it still valid? reproducible? blocked? duplicate/obsolete → close with explanation. If the issue belongs to Automation 1/2 scope (engineering fix, upstream semantics), confirm it is labeled and milestone-assigned, then leave implementation to them.
