@@ -321,6 +321,20 @@ is now also the watchdog (`docs/AUTOMATION.md`, "Automation watchdog"). Merged
 no migrator or dialect change (`docs/COMPATIBILITY.md`, "Upstream watch
 (2026-10-09)"). Check that the next scheduled runs produce agent output.
 
+Weekly maintainer/release review 2026-10-09 (follow-up): no release. Since
+`v0.1.0-alpha.2` main only gained docs and dev-dependency changes (TypeScript
+7.0.2 #10, tsx, @types/node, drizzle-orm 0.45.4 pin), so there is no user-facing
+value to ship; npm publication remains maintainer-gated (D14) and no publish
+credentials exist here. Main CI and CodeQL green; typecheck, 114 tests (11
+Postgres skipped), build and a 43-file/30.2 kB pack pass. `npm audit --omit=dev`
+is clean; full `npm audit` reports one high advisory (source-map-js 1.2.1 via
+vitest/vite/postcss, dev-only, no runtime exposure; Dependabot alerts are
+disabled). Upstream: `drizzle-orm@latest` is still 0.45.4; the rc line is now
+1.0.0-rc.5 and stays in the unmodeled R2/Q6 track. Open: issue #5 only; no open
+PRs. M2 stays active only for the npm decision; M5 (R2 research on the v1
+migration table) is the next evidence-backed work. No external user reports or
+adoption evidence exists, so no new adapter work is justified.
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅
