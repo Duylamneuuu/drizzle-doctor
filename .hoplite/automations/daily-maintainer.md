@@ -11,6 +11,7 @@ Milestone-driven engineering, pull request maintenance, issue maintenance, depen
 1. Read the docs listed above (they evolve; never assume they match this file).
 2. Fetch state: open issues, open PRs, CI runs, CodeQL, Dependabot PRs, releases, recent commits.
 3. Determine the active milestone from `docs/MILESTONES.md` (current: M2 — package/prerelease hardening; do not skip gates).
+4. Heartbeat: Automation 3 is the watchdog. If `other_thread_control` op `list` shows no thread titled `Daily Automation 3…` that is `ready` or `running` within the last 36 hours, or the newest one `failed`, say so in your report and in the open `Automation health:` issue (create it as described in `.hoplite/automations/daily-triage-docs.md`, Watchdog). Do not do its work.
 
 ## Work selection priority
 
