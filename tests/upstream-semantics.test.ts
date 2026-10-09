@@ -36,7 +36,7 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
-describe('upstream hash equivalence (drizzle-orm 0.45.2)', () => {
+describe('upstream hash equivalence (drizzle-orm 0.45.4)', () => {
   it('produces the same sha256 hashes and timestamps as readMigrationFiles', async () => {
     const dir = await fixture(
       [

@@ -194,7 +194,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the high-level roadmap.
 ## Known limitations
 
 - Compatibility is verified for journal-based PostgreSQL migrations from
-  `drizzle-orm@0.45.2` / `drizzle-kit@0.31.10`; the moving Drizzle v1
+  `drizzle-orm@0.45.2` through `0.45.4` / `drizzle-kit@0.31.10`; the moving Drizzle v1
   release-candidate folder/table format is not supported yet.
 - `status` verifies migration metadata consistency, not application-schema or
   SQL correctness. A PASS is not a full database health guarantee.
