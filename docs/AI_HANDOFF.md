@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-09-16.
+Last reviewed: 2026-09-18.
 
 ## 1. Mission
 
@@ -288,6 +288,28 @@ journal tags, preserves original journal positions after malformed metadata,
 and prevents composite Action input interpolation into Bash source. npm remains
 unpublished; no moving `@v1` tag was created. M4 is complete and issue #3 can
 be closed.
+
+Weekly maintainer/release review 2026-09-18: main CI and CodeQL are green on
+`47f71d0`; its changes since `v0.1.0-alpha.2` are documentation/upstream-watch
+updates plus the dev-only `@types/node` 26.5.1 update, so they do not justify a
+new release. `npm audit --omit=dev` reports zero vulnerabilities; GitHub
+Dependabot alerts are disabled and Code Scanning alert access is unavailable to
+the repository integration, so neither is evidence of a clean alert queue.
+The only open issue is #5 (the maintainer-gated npm prerelease tracker) and the
+only open PR is #10 (TypeScript 7, a dev-only major held for a maintainer
+toolchain decision; its existing CI is green). The current `npm test` exposed
+that packaging tests can legitimately run a production build for slightly more
+than Vitest's default 5 seconds on a slow runner, despite their child-process
+timeout being 120 seconds; their two build assertions now use a 30-second test
+timeout without reducing any package checks. Local verification after that
+correction: typecheck, 114 tests passed (11 PostgreSQL tests skipped without
+`TEST_DATABASE_URL`), build, clean 43-file pack surface, and consumer install
+smoke. Stable Drizzle remains `drizzle-orm@0.45.2` / `drizzle-kit@0.31.10`;
+the v1 rc.5 layout/table and hash-membership migration behavior remain out of
+scope as recorded in `docs/COMPATIBILITY.md`. M2 stays active solely for the
+maintainer-authorized npm publication decision (D14); no npm release or tag was
+created. The next evidence-backed work remains M5/R2 compatibility research,
+not a new backend adapter.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
