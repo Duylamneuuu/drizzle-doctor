@@ -19,6 +19,7 @@ Watch upstream Drizzle behavior, security posture, and CI health. This automatio
    Never preserve an outdated assumption just because existing tests expect it. Do not bump the pinned version as routine housekeeping without semantic review.
 5. Credential hygiene: scan the diff/repo state for stray credentials or connection strings; verify no test output or docs leak `DATABASE_URL` values. If found, remove and note the audit.
 6. Packaged-artifact integrity (supports M2): run `npm pack --dry-run` and verify the tarball contains only `dist`, `README.md`, `LICENSE`, `package.json`; no tests, fixtures, secrets, or local artifacts.
+7. Heartbeat: Automation 3 is the watchdog. If `other_thread_control` op `list` shows no thread titled `Daily Automation 3…` that is `ready` or `running` within the last 36 hours, or the newest one `failed`, say so in your report and in the open `Automation health:` issue (create it as described in `.hoplite/automations/daily-triage-docs.md`, Watchdog). Do not do its work.
 
 ## Execution rules
 
