@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-09-18.
+Last reviewed: 2026-10-09.
 
 ## 1. Mission
 
@@ -310,6 +310,16 @@ scope as recorded in `docs/COMPATIBILITY.md`. M2 stays active solely for the
 maintainer-authorized npm publication decision (D14); no npm release or tag was
 created. The next evidence-backed work remains M5/R2 compatibility research,
 not a new backend adapter.
+
+Maintenance run 2026-10-09: scheduled automation runs had been ending `failed`
+since 2026-09-19 without any agent output (a startup failure outside this
+repository; model, schedule and prompt settings live on the automation
+platform), so `main` had no merges between 2026-09-18 and 2026-10-09. Automation 3
+is now also the watchdog (`docs/AUTOMATION.md`, "Automation watchdog"). Merged
+#53, #45, #48 (tsx) and #49 (@types/node); closed #50 (vitest 5 needs Node
+>=22.12, D9). The `drizzle-orm` pin moved to 0.45.4 after a tarball diff showed
+no migrator or dialect change (`docs/COMPATIBILITY.md`, "Upstream watch
+(2026-10-09)"). Check that the next scheduled runs produce agent output.
 
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 

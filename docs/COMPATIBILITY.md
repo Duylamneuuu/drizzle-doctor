@@ -6,9 +6,10 @@ tool models Drizzle migration semantics that can change upstream.
 
 ## Verified upstream version
 
-- Package: `drizzle-orm@0.45.2` (pinned as an exact devDependency for the
+- Package: `drizzle-orm@0.45.4` (pinned as an exact devDependency for the
   compatibility tests in `tests/upstream-semantics.test.ts`)
-- Verified: 2026-09-02, against the npm-published build
+- Verified: 2026-09-02 against `0.45.2`; `0.45.4` re-verified 2026-10-09 (see
+  "Upstream watch (2026-10-09)"); both npm-published builds
 - Source references (at verification time):
   - `readMigrationFiles`, migration file reading/hash logic:
     https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/migrator.ts
@@ -101,7 +102,7 @@ it deserve error severity?
 
 The `replay` command (`src/replay.ts`) models the upstream PostgreSQL migrator
 for execution, with two deliberate diagnostic deviations. Verified against the
-same pinned `drizzle-orm@0.45.2` sources listed above.
+same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`).
 
 ### Matches upstream
 
@@ -231,3 +232,19 @@ compatibility decision is made (research queue item R2 tracks this):
   (`migrator.utils.js` in the published build) filters local migrations by
   `name` set membership (`formatToMillis` fallback still present); there
   is still no `order by created_at desc limit 1` watermark in that path.
+
+## Upstream watch (2026-10-09)
+
+Compared the npm tarballs of `drizzle-orm@0.45.2` (previous pin), `0.45.3` and
+`0.45.4` (dist-tag `latest`, published 2026-10-08) with `diff -r`.
+
+### Stable line — pin moved to 0.45.4 — semantics unchanged
+
+- Files that differ between 0.45.2 and 0.45.4: the new `netlify-db/` driver,
+  `postgres-js/session.*` (0.45.4: an explicit `.prepare(name)` now uses
+  prepared queries), `version.*` and `package.json`. Nothing under
+  `migrator.*`, `pg-core/` (including `dialect`) or any hashing/journal code
+  changed, so every item under "Verified semantics" above still holds.
+- The `package.json` pin, the lockfile and `tests/upstream-semantics.test.ts`
+  moved to `0.45.4`; the equivalence tests pass unchanged.
+- Not re-checked in this pass: `drizzle-kit` and the v1 release-candidate line.
