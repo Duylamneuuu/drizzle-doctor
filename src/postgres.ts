@@ -44,13 +44,14 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
     }
 
     const qualified = `${quoteIdentifier(schema)}.${quoteIdentifier(table)}`;
-    const result = await client.query<{ id: number; hash: string; created_at: string | number }>(
+    const result = await client.query<{ id: number; hash: string; created_at: string | number | null }>(
       `select id, hash, created_at from ${qualified} order by created_at asc, id asc`,
     );
 
     const rows = result.rows.map((row) => {
       const createdAt = Number(row.created_at);
-      if (!Number.isSafeInteger(createdAt)) {
+      // SQL NULL is not a timestamp; Number(null) would silently invent zero.
+      if (row.created_at === null || !Number.isSafeInteger(createdAt)) {
         throw new Error(`Invalid created_at value in ${schema}.${table}: ${String(row.created_at)}`);
       }
       return {

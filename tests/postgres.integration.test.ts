@@ -63,6 +63,51 @@ suite('readPostgresMigrationState', () => {
     ]);
   });
 
+  it.each([null, '9007199254740992'])('rejects invalid created_at %s without changing the row', async (createdAt) => {
+    if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
+
+    const client = new Client({ connectionString });
+    await client.connect();
+    try {
+      await client.query(
+        `insert into "${schema}"."__drizzle_migrations" (hash, created_at) values ($1, $2)`,
+        ['hash-invalid', createdAt],
+      );
+
+      await expect(readPostgresMigrationState({ connectionString, schema })).rejects.toThrow(
+        `Invalid created_at value in ${schema}.__drizzle_migrations: ${String(createdAt)}`,
+      );
+      const result = await client.query(
+        `select hash, created_at from "${schema}"."__drizzle_migrations" order by id`,
+      );
+      expect(result.rows).toEqual([
+        { hash: 'hash-a', created_at: '1000' },
+        { hash: 'hash-b', created_at: '2000' },
+        { hash: 'hash-invalid', created_at: createdAt },
+      ]);
+    } finally {
+      await client.end();
+    }
+  });
+
+  it('preserves a legitimate zero timestamp', async () => {
+    if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
+
+    const client = new Client({ connectionString });
+    await client.connect();
+    try {
+      await client.query(
+        `insert into "${schema}"."__drizzle_migrations" (hash, created_at) values ($1, $2)`,
+        ['hash-zero', 0],
+      );
+    } finally {
+      await client.end();
+    }
+
+    const snapshot = await readPostgresMigrationState({ connectionString, schema });
+    expect(snapshot.rows[0]).toEqual({ id: 3, hash: 'hash-zero', createdAt: 0 });
+  });
+
   it('reads a custom-named migration table', async () => {
     if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
 

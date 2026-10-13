@@ -58,6 +58,14 @@ tool models Drizzle migration semantics that can change upstream.
   ```
 
 - Rows are written as `(hash, created_at)` with `created_at = folderMillis`.
+- The column is nullable in the upstream DDL, but `NULL` is not a valid
+  migration timestamp. PostgreSQL sorts nulls first for upstream's
+  `order by created_at desc limit 1`, and Drizzle coerces that selected value
+  with `Number(...)`. `status` deliberately refuses null timestamps instead
+  of normalizing them to zero or claiming a reliable high-watermark. Like
+  timestamps outside JavaScript's safe-integer range, this is a command
+  failure (exit 2), not a migration finding. PostgreSQL integration tests
+  cover null rejection, safe-integer rejection, and valid zero timestamps.
 
 ### High-watermark apply decision
 
