@@ -2,7 +2,15 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-10-09.
+Last reviewed: 2026-10-13.
+
+Maintenance security update (2026-10-13): refreshed only the transitive
+`source-map-js` lockfile entry from 1.2.1 to 1.2.2 to address
+[GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)
+(indexed source-map event-loop denial of service). This dependency is dev-only
+through Vitest/Vite/PostCSS; runtime dependencies, Node 20 support, Drizzle
+semantics, and report contracts are unchanged. Full `npm audit` reports zero
+vulnerabilities after the update. npm publication remains maintainer-gated.
 
 ## 1. Mission
 
