@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- redact short passwords in driver-reported URL userinfo even when the host
+  or path differs from the supplied URL; malformed percent-encoding no longer
+  bypasses credential redaction, while unrelated short text remains intact
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

@@ -70,6 +70,39 @@ describe('redactConnectionString', () => {
     expect(redacted).toContain('backend labeled "ab"');
   });
 
+  it.each(['a', 'ab', '@'])('redacts short password %s in userinfo without altering unrelated text', (password) => {
+    const encoded = encodeURIComponent(password);
+    const connection = `postgres://doctor:${encoded}@db.example.com/app`;
+    for (const value of new Set([password, encoded])) {
+      const message = `login doctor:${value}@mirror rejected; backend labeled "${password}"`;
+      expect(redactConnectionString(message, connection)).toBe(
+        `login doctor:[REDACTED]@mirror rejected; backend labeled "${password}"`,
+      );
+    }
+  });
+
+  it.each([
+    ['doc%ZZ', 'long-secret'],
+    ['doctor', 'bad%ZZ'],
+    ['doctor', '%FF'],
+  ])('redacts userinfo with malformed encoding (%s, %s)', (user, password) => {
+    const connection = `postgres://${user}:${password}@db.example.com/app`;
+    expect(redactConnectionString(`login ${user}:${password}@mirror rejected`, connection)).toBe(
+      `login ${user}:[REDACTED]@mirror rejected`,
+    );
+  });
+
+  it('redacts encoded and decoded usernames independently of the password encoding', () => {
+    const connection = 'postgres://doc%40team:p%40ss@db.example.com/app';
+    for (const user of ['doc%40team', 'doc@team']) {
+      for (const password of ['p%40ss', 'p@ss']) {
+        expect(redactConnectionString(`login ${user}:${password}@mirror rejected`, connection)).toBe(
+          `login ${user}:[REDACTED]@mirror rejected`,
+        );
+      }
+    }
+  });
+
   it('is a no-op without a connection string', () => {
     const message = 'some unrelated error';
     expect(redactConnectionString(message)).toBe(message);
