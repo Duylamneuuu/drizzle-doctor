@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- reject PostgreSQL migration rows with a null `created_at` instead of
+  coercing them to timestamp zero; `status` exits 2 when the migration
+  high-watermark cannot be reliably determined
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
