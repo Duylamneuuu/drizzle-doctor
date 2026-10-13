@@ -13,6 +13,15 @@ function replaceAll(input: string, needle: string, replacement: string): string 
   return input.split(needle).join(replacement);
 }
 
+// Malformed escape sequences must not bypass redaction of other components.
+function decodeCredential(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 /**
  * Removes connection-string credential material from `message`.
  *
@@ -35,13 +44,23 @@ export function redactConnectionString(message: string, connectionString?: strin
 
   try {
     const url = new URL(connectionString);
-    const user = url.username ? decodeURIComponent(url.username) : '';
-    const password = url.password ? decodeURIComponent(url.password) : '';
-    if (password && password.length >= 3) {
-      redacted = replaceAll(redacted, `${user}:${password}@`, `${user}:[REDACTED]@`);
-      redacted = replaceAll(redacted, `${user}:${encodeURIComponent(password)}@`, `${user}:[REDACTED]@`);
-      redacted = replaceAll(redacted, password, REDACTED);
-      redacted = replaceAll(redacted, encodeURIComponent(password), REDACTED);
+    const user = decodeCredential(url.username);
+    const password = decodeCredential(url.password);
+    if (password) {
+      const users = new Set([url.username, user]);
+      const passwords = new Set([url.password, password, encodeURIComponent(password)]);
+      // Userinfo is credential-specific context: redact even a short password.
+      for (const username of users) {
+        for (const value of passwords) {
+          redacted = replaceAll(redacted, `${username}:${value}@`, `${username}:${REDACTED}@`);
+        }
+      }
+      // Keep short standalone values intact to avoid corrupting diagnostics.
+      if (password.length >= 3) {
+        for (const value of passwords) {
+          redacted = replaceAll(redacted, value, REDACTED);
+        }
+      }
     }
     for (const key of ['password', 'pass']) {
       const value = url.searchParams.get(key);
