@@ -8,6 +8,10 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ### Changed
 
+- extend stable Drizzle Kit generated-journal compatibility evidence to
+  0.31.11 with a frozen PostgreSQL fixture, pinned ORM reader equivalence
+  assertions, and an explicit tested-version matrix; no runtime changes
+
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
   the published packages (new Netlify DB driver and a `postgres-js`
   prepared-query fix only; migrator and PostgreSQL dialect unchanged) and

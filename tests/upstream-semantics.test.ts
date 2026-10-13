@@ -9,7 +9,7 @@
 // change cannot silently move this suite; when upgrading drizzle-orm, update
 // the compatibility notes in docs/COMPATIBILITY.md in the same change.
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -74,5 +74,26 @@ describe('upstream hash equivalence (drizzle-orm 0.45.4)', () => {
 
     expect(ours.migrations[0]?.hash).toBe(expected);
     expect(upstream[0]?.hash).toBe(expected);
+  });
+});
+
+describe('generated PostgreSQL history (drizzle-kit 0.31.11)', () => {
+  it('accepts the generated journal and matches upstream hashes, timestamps, and breakpoints', async () => {
+    const dir = path.resolve('tests/fixtures/drizzle-kit-0.31.11');
+    const journal = JSON.parse(await readFile(path.join(dir, 'meta', '_journal.json'), 'utf8'));
+    expect(journal).toMatchObject({ version: '7', dialect: 'postgresql' });
+
+    const repository = await inspectMigrationRepository(dir);
+    const upstream = readMigrationFiles({ migrationsFolder: dir });
+
+    expect(repository.findings).toEqual([]);
+    expect(repository.migrations).toHaveLength(2);
+    expect(repository.migrations.map(({ idx, tag, when, breakpoints }) => ({ idx, tag, when, breakpoints })))
+      .toEqual(journal.entries.map(({ idx, tag, when, breakpoints }: {
+        idx: number; tag: string; when: number; breakpoints: boolean;
+      }) => ({ idx, tag, when, breakpoints })));
+    expect(repository.migrations.map(({ hash, when, breakpoints }) => ({ hash, when, breakpoints })))
+      .toEqual(upstream.map(({ hash, folderMillis, bps }) => ({ hash, when: folderMillis, breakpoints: bps })));
+    expect(upstream.map(({ sql }) => sql.length)).toEqual([5, 1]);
   });
 });

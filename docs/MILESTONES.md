@@ -399,6 +399,13 @@ Turn implicit assumptions into explicit compatibility and policy surfaces.
 
 #### M5.1 Drizzle compatibility matrix
 
+Initial stable-line evidence is recorded in `docs/COMPATIBILITY.md` under
+"Compatibility evidence matrix (M5.1)". A frozen Kit 0.31.11-generated
+PostgreSQL history now runs through the pinned ORM reader and repository
+inspection in CI; Node and database claims remain bounded to the existing
+Node 20/22 and PostgreSQL 16 jobs. This does not unblock demand-gated policy
+work or claim v1 compatibility.
+
 Track tested combinations of:
 
 - Drizzle ORM versions/ranges
