@@ -248,3 +248,38 @@ Compared the npm tarballs of `drizzle-orm@0.45.2` (previous pin), `0.45.3` and
 - The `package.json` pin, the lockfile and `tests/upstream-semantics.test.ts`
   moved to `0.45.4`; the equivalence tests pass unchanged.
 - Not re-checked in this pass: `drizzle-kit` and the v1 release-candidate line.
+
+
+## Generated-history evidence (2026-10-13)
+
+The latest stable Kit version at this review was `0.31.11`; ORM remained
+`0.45.4`. Compared the npm-published `drizzle-kit@0.31.10` and `0.31.11`
+tarballs: `api.mjs` is byte-identical. The only `bin.cjs` changes are the
+version string and a `check` warning when journal timestamps do not strictly
+increase. Generation/journal serialization is unchanged. This warning
+reinforces, rather than replaces, `JOURNAL_TIMESTAMP_ORDER` and
+`WOULD_BE_SKIPPED_BY_DRIZZLE`; no finding severity or migrator model changed.
+Published sources: https://www.npmjs.com/package/drizzle-kit/v/0.31.11 and
+https://www.npmjs.com/package/drizzle-kit/v/0.31.10 (`bin.cjs`, `api.mjs`).
+
+A purpose-built two-step PostgreSQL schema was generated using Kit 0.31.11
+and ORM 0.45.4 without database access. It exercises an enum, two tables, a
+foreign key, an index, statement breakpoints, and a later column addition.
+The exact SQL/journal bytes and reproduction steps live in
+`tests/fixtures/drizzle-kit-0.31.11/`. `tests/upstream-semantics.test.ts`
+asserts a clean repository audit and compares every hash, timestamp, and
+breakpoint flag against the pinned ORM's `readMigrationFiles`.
+
+### Compatibility evidence matrix (M5.1)
+
+| Scope | Versions | Evidence / boundary |
+| --- | --- | --- |
+| ORM journal reader and PostgreSQL watermark model | 0.45.2–0.45.4 | Published-source review above; equivalence tests pin 0.45.4. |
+| Kit PostgreSQL generated journal | 0.31.10–0.31.11 | 0.31.10 review above; 0.31.11 frozen generated fixture and unchanged generator source. Not a claim about every Kit feature/dialect. |
+| Node | 20, 22 | CI unit/typecheck/build and generated-fixture tests; fixture generated on Node 22.23.3. |
+| PostgreSQL | 16 | CI status/replay integration tests. The Kit fixture is reader/hash evidence, not an additional database execution matrix. |
+| Drizzle v1 release candidates | Unsupported | Separate folder/name-based semantics; not validated by the stable journal fixtures. |
+
+Kit is not added as a dependency or downloaded during tests. This review does
+not expand backend support, enable policy suppression, or complete the
+usage-gated portions of M5.
