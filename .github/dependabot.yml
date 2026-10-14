@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Vitest 5+ requires Node 22.12+; retain the supported Node 20 test matrix.
+      # Revisit only with an approved Node support-floor change.
+      - dependency-name: vitest
+        versions: [">=5"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
