@@ -73,6 +73,14 @@ runs:
         # this step before the exit code is recorded, skipping the summary
         # step and leaving the `ok` output unset.
         set -u +e -o pipefail
+        # Each invocation owns a fresh report, including early failures.
+        # A shared path could expose a previous run's passing verdict when
+        # this run returns before invoking the CLI (for example invalid mode).
+        if ! report_path="$(mktemp "$RUNNER_TEMP/drizzle-doctor-report.XXXXXX")"; then
+          echo 'exit=2' >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        echo "report-path=$report_path" >> "$GITHUB_OUTPUT"
         mode="$MODE_INPUT"
         if [ "$mode" != 'repo' ] && [ "$mode" != 'status' ]; then
           echo "drizzle-doctor: unsupported mode '$mode' (expected 'repo' or 'status')" >&2
@@ -90,7 +98,7 @@ runs:
         # via the step environment above); the CLI --database-url flag is
         # deliberately not used here so the secret never appears in the
         # process listing.
-        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}" --json > "$RUNNER_TEMP/drizzle-doctor-report.json"
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}" --json > "$report_path"
         echo "exit=$?" >> "$GITHUB_OUTPUT"
         exit 0
 
@@ -99,6 +107,7 @@ runs:
       shell: bash
       env:
         AUDIT_EXIT: ${{ steps.audit.outputs.exit }}
+        REPORT_PATH: ${{ steps.audit.outputs.report-path }}
       run: |
         set -euo pipefail
         script="$RUNNER_TEMP/drizzle-doctor-summary.mjs"
@@ -118,7 +127,7 @@ runs:
         }
         const summaryFile = process.env.GITHUB_STEP_SUMMARY ?? '';
         const outputFile = process.env.GITHUB_OUTPUT ?? '';
-        if (report) {
+        if (report && ['0', '1'].includes(process.env.AUDIT_EXIT)) {
           const summary = helpers.renderActionSummary(report);
           if (summaryFile) appendFileSync(summaryFile, summary);
           else process.stdout.write(summary);
@@ -141,9 +150,7 @@ runs:
           if (outputFile) appendFileSync(outputFile, 'ok=false\n');
         }
         SCRIPT_EOF
-        ACTION_PATH="$GITHUB_ACTION_PATH" \
-          REPORT_PATH="$RUNNER_TEMP/drizzle-doctor-report.json" \
-          node "$script"
+        ACTION_PATH="$GITHUB_ACTION_PATH" node "$script"
 
     - name: Report audit result
       shell: bash

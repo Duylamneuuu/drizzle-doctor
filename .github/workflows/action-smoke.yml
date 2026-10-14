@@ -22,6 +22,7 @@ on:
       - 'src/action-summary.ts'
       - 'src/**'
       - 'tests/action-summary.test.ts'
+      - 'tests/action-execution.test.ts'
       - '.github/workflows/action-smoke.yml'
   pull_request:
     paths:
@@ -29,6 +30,7 @@ on:
       - 'src/action-summary.ts'
       - 'src/**'
       - 'tests/action-summary.test.ts'
+      - 'tests/action-execution.test.ts'
       - '.github/workflows/action-smoke.yml'
 
 permissions:
@@ -61,6 +63,20 @@ jobs:
         shell: bash
         run: |
           test '${{ steps.clean.outputs.ok }}' = 'true'
+
+      - name: invalid mode must not reuse the clean run's passing report
+        id: invalid
+        continue-on-error: true
+        uses: ./
+        with:
+          mode: invalid
+          migrations: .tmp/action-smoke-clean/drizzle
+
+      - name: Assert the invalid run failed and reported not-ok
+        shell: bash
+        run: |
+          test '${{ steps.invalid.outcome }}' = 'failure'
+          test '${{ steps.invalid.outputs.ok }}' = 'false'
 
       - name: repo mode fails visibly on a broken history
         id: broken

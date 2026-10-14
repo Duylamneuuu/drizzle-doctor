@@ -90,6 +90,9 @@ forked-repo code could observe them.
   findings, `'false'` otherwise (including when the audit could not
   complete). The step still re-exits with the CLI's exit code (0/1/2) so the
   job fails correctly.
+- Each invocation uses its own fresh temporary report. Multiple uses in one
+  job cannot reuse an earlier verdict, and early/operational failures render
+  the could-not-complete summary with `ok=false`.
 - Rendering semantics live in `src/action-summary.ts` (built to
   `dist/action-summary.js` inside the action checkout) and are pinned by
   `tests/action-summary.test.ts`. That module is **internal** to the Action
