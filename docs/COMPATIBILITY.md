@@ -16,6 +16,31 @@ tool models Drizzle migration semantics that can change upstream.
   - PostgreSQL migrator, high-watermark logic and migration table DDL:
     https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/pg-core/dialect.ts
 
+## Compatibility validation matrix
+
+The CI workflow (`.github/workflows/ci.yml`) exercises these combinations.
+Successful checks on the relevant commit are the evidence; this is not a
+claim that every version between the listed versions has been tested.
+
+| Surface | Versions | Evidence |
+| --- | --- | --- |
+| Node.js | 20, 22 | Typecheck, full non-database test suite, build |
+| Drizzle ORM | 0.45.4 (current pin); 0.45.2 (historical baseline) | `tests/upstream-semantics.test.ts`; source review recorded below |
+| PostgreSQL | 16, 18, each on Node.js 22 | `tests/postgres.integration.test.ts` and `tests/replay.integration.test.ts` in separate CI service containers |
+| Packed CLI | Node.js 22 | Tarball installation and CLI smoke test in a fresh consumer project |
+
+The PostgreSQL jobs run the full test suite with `TEST_DATABASE_URL`, covering
+read-only migration-state inspection and opt-in disposable replay (including
+failure/rollback paths). Each server major has an independent job, so a
+failure does not cancel validation of the other major. PostgreSQL 17 and
+other server majors are not covered by this matrix. Drizzle v1 prereleases
+remain outside the modeled migration format; see the upstream watch below.
+
+The official PostgreSQL image changed its default data-directory layout in
+18. These disposable CI service containers use image-managed storage, not a
+host-mounted data directory, so no cross-version volume reuse is involved.
+See the [official image documentation](https://hub.docker.com/_/postgres).
+
 ## Verified semantics
 
 ### Journal layout (`readMigrationFiles`)
