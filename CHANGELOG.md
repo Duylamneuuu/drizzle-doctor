@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- isolate each composite Action invocation's temporary report so an invalid
+  mode or operational failure cannot reuse a previous run's passing summary
+  or `ok=true` output in the same job
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
