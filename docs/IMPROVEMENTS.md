@@ -31,6 +31,12 @@ Delivered by M1.2: `tests/upstream-semantics.test.ts` pins `drizzle-orm@0.45.2` 
 
 The unit suite replaces the old dry-run-only step: `tests/packaging.test.ts` builds the CLI, verifies the shebang and bin entry, asserts the tarball contains only intended files, and resolves the library export. A dedicated `package-smoke` CI job then installs the produced tarball into a temporary consumer directory and runs the installed `drizzle-doctor` binary against a real fixture (`--help`, `--version`, `repo --json`).
 
+All three subprocess tests have a bounded 30-second test timeout, including
+the `npm pack --dry-run` content check. The default five-second timeout can
+expire under concurrent CLI/build load even when the artifact is valid;
+artifact assertions remain unchanged and the packaging suite must not be
+excluded from validation.
+
 ## P0.5 Remove version duplication ✅ (completed in M1)
 
 The CLI reads `--version` from `package.json` at runtime via `createRequire` (no new dependency); `tests/cli.test.ts` asserts `--version` matches package metadata.
