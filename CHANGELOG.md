@@ -6,6 +6,13 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- Replay now applies its query timeout on PostgreSQL as well as the client,
+  cancelling long-running statements instead of leaving them executing after
+  a timeout is reported. The failing migration is rolled back and later
+  migrations are not attempted.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
