@@ -84,7 +84,8 @@ forked-repo code could observe them.
   and renders the report into the job summary.
 - Job summary: `pass ✅` / `findings ❌` heading, command, migration count,
   findings count, `status`-only counters, and a findings table (capped at 50
-  rows; the full report is echoed per-finding into the log).
+  rows; the full report is echoed per-finding into the log). Finding messages
+  are rendered as literal text, not interpreted as Markdown links, images or HTML.
 - Error-level findings also become `::error` annotations (capped at 10).
 - Output `ok` is `'true'` when the audit completed with no error-level
   findings, `'false'` otherwise (including when the audit could not

@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- render untrusted finding messages as literal text in GitHub Action summaries
+  to prevent migration tags/identifiers from injecting Markdown links, images,
+  HTML or misleading formatting; JSON findings and annotations are unchanged
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

@@ -65,6 +65,12 @@ Composite Action inputs are mapped through environment variables and quoted as
 Bash array values. Caller-supplied paths/schema/table names are never
 interpolated into shell source.
 
+Finding messages include untrusted migration tags, paths and database
+identifiers. The Action renders these as literal text in its Markdown summary:
+ASCII punctuation is encoded as character references so findings cannot inject
+links, images, HTML, formatting or extra table cells. This is presentation-only;
+JSON findings and intentional error annotations retain their original content.
+
 ### False reassurance
 
 A PASS means only that implemented checks found no error-level findings. It is not proof that application schema or migration SQL is logically correct. Documentation and output should avoid presenting the tool as a full database verifier.

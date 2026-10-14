@@ -33,7 +33,15 @@ export function actionAnnotationFor(finding: Finding): string {
 }
 
 function actionTableCell(message: string): string {
-  return message.replaceAll('|', '\\|').replaceAll('\r', ' ').replaceAll('\n', ' ');
+  // Findings contain untrusted tags, paths and database identifiers. Table
+  // cells parse inline Markdown, so escaping only pipes still permits forged
+  // links/images and HTML. Character references render punctuation literally
+  // without reinterpreting it as Markdown (GFM sections 4.10 and 6.2).
+  return message
+    .replaceAll('\r', ' ')
+    .replaceAll('\n', ' ')
+    .replace(/[\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/g,
+      (character) => `&#${character.charCodeAt(0)};`);
 }
 
 /** Render the markdown job summary for a parsed report. */
