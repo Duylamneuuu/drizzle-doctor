@@ -51,3 +51,10 @@ describe("action.yml audit step", () => {
     expect(actionYml).toContain('args=("$mode" --migrations "$MIGRATIONS_INPUT")');
   });
 });
+
+describe("action.yml finding logs", () => {
+  it("uses the command-safe formatter rather than interpolating raw messages", () => {
+    expect(actionYml).toContain('process.stdout.write(`${helpers.actionLogFor(finding)}\\n`);');
+    expect(actionYml).not.toContain('${finding.message}');
+  });
+});
