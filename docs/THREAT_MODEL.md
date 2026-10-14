@@ -43,6 +43,12 @@ Control: core database status adapter uses read queries only. Mutation belongs o
 
 Control: connection strings are accepted through arguments/environment but never copied into structured/text reports. Driver errors are sanitized before display (`src/sanitize.ts`): the connection string, its `user:password@` prefix, percent-encoded password forms, and `password=` fragments are redacted, and the original error is never printed. Tests assert the invariant end-to-end (`tests/sanitize.test.ts`, `tests/cli.test.ts`). Tests and bug templates warn against posting real credentials. Documented guidance prefers `DATABASE_URL` over `--database-url` to keep credentials out of shell history and process listings.
 
+CLI parser errors are sanitized before Commander writes them as well as at
+the final error boundary. `tests/secret-regression.test.ts` covers invalid
+options and unknown commands containing dummy credential inputs. Environment
+credentials used for diagnostic redaction do not select the replay target;
+replay still requires its own explicit `--database-url`.
+
 ### Malicious SQL in a repository
 
 Current `repo`/`status` modes hash/read SQL; they do not execute it. The

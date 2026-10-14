@@ -114,7 +114,35 @@ async function runReplay(options: ReplayOptions): Promise<void> {
   printReport(createReplayReport(inspection, result), Boolean(options.json));
 }
 
+// Commander writes parser errors before parseAsync rejects. Capture credential
+// inputs before parsing so neither that early output nor the final catch can
+// echo a URL/password from an invalid option or unknown command (D11).
+const diagnosticConnectionStrings = new Set<string>();
+if (process.env.DATABASE_URL) diagnosticConnectionStrings.add(process.env.DATABASE_URL);
+const cliArgs = process.argv.slice(2);
+for (const [index, arg] of cliArgs.entries()) {
+  if (arg === '--database-url' && cliArgs[index + 1]) {
+    diagnosticConnectionStrings.add(cliArgs[index + 1]);
+  } else if (arg.startsWith('--database-url=')) {
+    diagnosticConnectionStrings.add(arg.slice('--database-url='.length));
+  }
+  // Also protect a URL accidentally pasted as a command or unknown option.
+  const embeddedUrl = arg.match(/postgres(?:ql)?:\/\/.*/i)?.[0];
+  if (embeddedUrl) diagnosticConnectionStrings.add(embeddedUrl);
+}
+
+function redactCliDiagnostic(message: string): string {
+  let sanitized = message;
+  for (const connectionString of diagnosticConnectionStrings) {
+    sanitized = redactConnectionString(sanitized, connectionString);
+  }
+  return redactConnectionString(sanitized);
+}
+
 const program = new Command();
+program.configureOutput({
+  writeErr: (message) => process.stderr.write(redactCliDiagnostic(message)),
+});
 program
   .name('drizzle-doctor')
   .description('Read-only Drizzle migration integrity and PostgreSQL state auditor.')
@@ -171,11 +199,11 @@ program.parseAsync(process.argv).catch((error: unknown) => {
       process.exitCode = 2;
       return;
     }
-    process.stderr.write(`drizzle-doctor: ${error.message}\n`);
+    process.stderr.write(`drizzle-doctor: ${redactCliDiagnostic(error.message)}\n`);
     process.exitCode = 2;
     return;
   }
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`drizzle-doctor: ${message}\n`);
+  process.stderr.write(`drizzle-doctor: ${redactCliDiagnostic(message)}\n`);
   process.exitCode = 2;
 });
