@@ -85,6 +85,10 @@ of these:
   sanitized before they reach stderr or the JSON report (invariant D11)
 - failing migration/statement is reported without dumping sensitive data
   unnecessarily (tag, breakpoint-chunk index, SQLSTATE, sanitized message)
+- replay sets both client-side query and PostgreSQL statement timeouts (30
+  seconds by default, configurable through the library), so timed-out
+  statements are cancelled on the server before the failing migration is
+  rolled back; these are per-query/statement limits, not a whole-run deadline
 - test suite includes a guard against accidental use of a production-style
   status URL (`tests/cli.test.ts` asserts replay never reads `DATABASE_URL`)
 

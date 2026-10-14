@@ -273,6 +273,49 @@ suite('replayMigrations', () => {
     await client.query('drop table if exists public.plain_table cascade');
   });
 
+  it('cancels timed-out statements on the server and rolls back the migration', async () => {
+    const { dir } = await migration(
+      [
+        { idx: 0, when: 1000, tag: '0000_slow' },
+        { idx: 1, when: 2000, tag: '0001_never' },
+      ],
+      {
+        '0000_slow.sql': `create table ${q('slow_table')}(id int);
+--> statement-breakpoint
+select pg_sleep(5);`,
+        '0001_never.sql': `create table ${q('never_table')}(id int);`,
+      },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    const result = await replayMigrations({
+      connectionString: connectionString!,
+      schema,
+      table: '__drizzle_migrations',
+      migrations: inspection.migrations,
+      timeoutMs: 250,
+    });
+
+    expect(result.applied).toBe(0);
+    expect(result.firstFailure?.tag).toBe('0000_slow');
+    expect(result.firstFailure?.statement).toBe(2);
+    // A client-side read timeout alone leaves pg_sleep running after replay
+    // returns. Check server activity rather than relying on a timing threshold.
+    const active = await client.query(`
+      select pid from pg_stat_activity
+      where application_name = 'drizzle-doctor-replay' and datname = current_database()
+        and state = 'active' and query = 'select pg_sleep(5);'
+    `);
+    expect(active.rows).toEqual([]);
+    const tables = await client.query(
+      `select table_name from information_schema.tables
+       where table_schema = $1 and table_name in ('slow_table', 'never_table')`,
+      [schema],
+    );
+    expect(tables.rows).toEqual([]);
+    const count = await client.query(`select count(*)::int as n from "${schema}"."__drizzle_migrations"`);
+    expect(count.rows[0]?.n).toBe(0);
+  });
+
   it('refuses a target whose migration table already has rows', async () => {
     const { dir } = await migration(
       [{ idx: 0, when: 1000, tag: '0000_first' }],

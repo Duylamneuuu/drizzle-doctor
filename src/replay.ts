@@ -76,7 +76,9 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
     connectionString,
     connectionTimeoutMillis: timeoutMs,
     query_timeout: timeoutMs,
-    statement_timeout: 0, // client-side query_timeout guards long queries
+    // A client-side read timeout does not cancel server execution. Bound
+    // statements on PostgreSQL too, so rollback can proceed after a timeout.
+    statement_timeout: timeoutMs,
     application_name: 'drizzle-doctor-replay',
   });
   await client.connect();
