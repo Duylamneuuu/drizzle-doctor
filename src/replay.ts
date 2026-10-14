@@ -32,6 +32,7 @@
 // the CLI requires an explicit --database-url (this module never reads
 // DATABASE_URL) and an affirmative --confirm-destructive flag.
 
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 import { Client } from 'pg';
@@ -124,6 +125,11 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
     let applied = 0;
     for (const migration of migrations) {
       const sql = await readFile(migration.sqlPath, 'utf8');
+      // Execute and record the same contents that repository inspection hashed.
+      // A file can change while connecting or replaying earlier migrations.
+      if (createHash('sha256').update(sql).digest('hex') !== migration.hash) {
+        throw new Error(`Migration ${migration.tag} changed since repository inspection. Reset the disposable target and rerun replay with an unchanged migration history.`);
+      }
       const chunks = splitChunks(sql);
 
       await client.query('begin');

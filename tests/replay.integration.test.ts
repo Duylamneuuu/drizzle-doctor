@@ -121,6 +121,56 @@ suite('replayMigrations', () => {
     expect(accounts.rows).toEqual([{ name: 'alice' }]);
   });
 
+  it('rejects SQL changed after inspection before executing it or recording its old hash', async () => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }],
+      { '0000_first.sql': `create table ${q('first_table')}(id int);` },
+    );
+    const inspected = await inspectMigrationRepository(dir);
+    await writeFile(path.join(dir, '0000_first.sql'), `create table ${q('never_table')}(id int);`);
+
+    try {
+      await expect(replayMigrations({
+        connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspected.migrations,
+      })).rejects.toThrow('Migration 0000_first changed since repository inspection.');
+
+      const snapshot = await readPostgresMigrationState({ connectionString: connectionString!, schema });
+      expect(snapshot.rows).toEqual([]);
+      const objects = await client.query<{ original: string | null; changed: string | null }>(
+        'select to_regclass($1)::text as original, to_regclass($2)::text as changed',
+        [`${schema}.first_table`, `${schema}.never_table`],
+      );
+      expect(objects.rows[0]).toEqual({ original: null, changed: null });
+    } finally {
+      await client.end();
+    }
+  });
+
+  it('stops at a changed later migration while retaining correctly hashed earlier work', async () => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }, { idx: 1, when: 2000, tag: '0001_second' }],
+      {
+        '0000_first.sql': `create table ${q('first_table')}(id int);`,
+        '0001_second.sql': `create table ${q('never_table')}(id int);`,
+      },
+    );
+    const inspected = await inspectMigrationRepository(dir);
+    await writeFile(path.join(dir, '0001_second.sql'), `insert into ${q('first_table')} values (42);`);
+
+    try {
+      await expect(replayMigrations({
+        connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspected.migrations,
+      })).rejects.toThrow('Migration 0001_second changed since repository inspection.');
+
+      const snapshot = await readPostgresMigrationState({ connectionString: connectionString!, schema });
+      expect(snapshot.rows).toEqual([{ id: 1, hash: inspected.migrations[0]!.hash, createdAt: 1000 }]);
+      const rows = await client.query(`select * from ${q('first_table')}`);
+      expect(rows.rows).toEqual([]);
+    } finally {
+      await client.end();
+    }
+  });
+
   it('supports custom migration schema and table names', async () => {
     const { dir } = await migration(
       [{ idx: 0, when: 1000, tag: '0000_first' }],

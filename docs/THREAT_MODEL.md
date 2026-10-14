@@ -85,6 +85,9 @@ of these:
   sanitized before they reach stderr or the JSON report (invariant D11)
 - failing migration/statement is reported without dumping sensitive data
   unnecessarily (tag, breakpoint-chunk index, SQLSTATE, sanitized message)
+- the SQL string read for execution must match the hash from repository
+  inspection; a changed file stops replay before executing that migration or
+  recording a stale hash (earlier per-migration commits remain)
 - test suite includes a guard against accidental use of a production-style
   status URL (`tests/cli.test.ts` asserts replay never reads `DATABASE_URL`)
 
