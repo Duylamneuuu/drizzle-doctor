@@ -8,6 +8,8 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ### Changed
 
+- add Node 24 LTS to CI typecheck/test/build and packed-package consumer
+  validation while retaining Node 20 and 22 coverage
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
   the published packages (new Netlify DB driver and a `postgres-js`
   prepared-query fix only; migrator and PostgreSQL dialect unchanged) and
