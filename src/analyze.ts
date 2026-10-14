@@ -45,15 +45,16 @@ export function analyzeDatabaseState(
     return { findings, summary, maxCreatedAt: null };
   }
 
-  const maxCreatedAt = database.rows.length > 0
-    ? Math.max(...database.rows.map((row) => row.createdAt))
-    : null;
+  let maxCreatedAt: number | null = null;
 
   const dbByTimestamp = new Map<number, DatabaseMigration[]>();
   const localByTimestamp = new Map(localMigrations.map((migration) => [migration.when, migration]));
   const localByHash = new Map(localMigrations.map((migration) => [migration.hash, migration]));
 
   for (const row of database.rows) {
+    // Avoid spreading the full history into a call: large tables can exceed
+    // the runtime's argument limit before any findings are produced.
+    maxCreatedAt = maxCreatedAt === null ? row.createdAt : Math.max(maxCreatedAt, row.createdAt);
     const bucket = dbByTimestamp.get(row.createdAt) ?? [];
     bucket.push(row);
     dbByTimestamp.set(row.createdAt, bucket);
