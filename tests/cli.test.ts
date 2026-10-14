@@ -2,7 +2,7 @@
 // Runs the real CLI entry through tsx so exit codes and output are the
 // contract under test, not internal functions.
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -51,6 +51,28 @@ afterEach(async () => {
 });
 
 describe('cli exit behavior', () => {
+  it.each(['repo', 'status', 'replay'])('%s rejects SQL symlink escapes before database access', async (command) => {
+    const migrationsDir = await repoFixture(
+      [{ idx: 0, when: 1000, tag: '0000_link', breakpoints: true }],
+      {},
+    );
+    const outsidePath = path.join(path.dirname(migrationsDir), 'outside.sql');
+    await writeFile(outsidePath, 'select 1;');
+    await symlink(outsidePath, path.join(migrationsDir, '0000_link.sql'));
+
+    // No database URL: exit 1 proves inspection failed before connecting or replaying.
+    const { code, stdout, stderr } = await run([
+      command, '--migrations', migrationsDir, '--json',
+    ], { ...process.env, DATABASE_URL: '' });
+
+    expect(code).toBe(1);
+    expect(stderr).toBe('');
+    const report = JSON.parse(stdout);
+    expect(report.ok).toBe(false);
+    expect(report.findings.map((item: { code: string }) => item.code)).toEqual(['MIGRATION_SQL_UNREADABLE']);
+    expect(stdout).not.toContain(outsidePath);
+  });
+
   it('--help exits 0 and lists the commands', async () => {
     const { code, stdout } = await run(['--help']);
     expect(code).toBe(0);
