@@ -36,6 +36,14 @@ tool models Drizzle migration semantics that can change upstream.
   statement-breakpoint markers and trailing newline.
 - `drizzle-doctor` reproduces this exactly (`src/repository.ts`); the
   equivalence is asserted in `tests/upstream-semantics.test.ts`.
+- Hash-variant research (2026-10-14) in
+  `tests/upstream-hash-variants.test.ts` compares the pinned upstream reader
+  with LF/CRLF, optional final newlines, UTF-8 BOMs, non-ASCII text, empty
+  files, and malformed UTF-8. Line endings, BOMs, and final newlines are not
+  normalized: changing them changes the hash. Invalid UTF-8 bytes are decoded
+  to replacement characters before hashing, matching upstream; this is a hash
+  of decoded text, not a raw-byte hash for malformed input. These tests read
+  files only and do not establish whether the SQL can execute successfully.
 
 ### Statement breakpoints
 
