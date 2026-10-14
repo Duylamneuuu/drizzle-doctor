@@ -129,6 +129,11 @@ Each finding object has exactly these fields; optional fields are **omitted**
 | `hint` | `string` (optional) | What to inspect next. |
 | `details` | `object` (optional) | Structured context (ids, timestamps, hashes, tags). |
 
+For `DATABASE_TIMESTAMP_MISMATCH`, unique hash matches retain `tag` and
+`localCreatedAt` in `details`. Ambiguous hash matches instead supply a
+`localMatches` candidate array; consumers must not assume a singular migration
+identity. See [finding semantics](FINDINGS.md#timestamp-mismatch-identity).
+
 ## Optional fields
 
 - `database` and `summary` appear only in `status` reports.

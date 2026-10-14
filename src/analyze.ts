@@ -51,7 +51,12 @@ export function analyzeDatabaseState(
 
   const dbByTimestamp = new Map<number, DatabaseMigration[]>();
   const localByTimestamp = new Map(localMigrations.map((migration) => [migration.when, migration]));
-  const localByHash = new Map(localMigrations.map((migration) => [migration.hash, migration]));
+  const localByHash = new Map<string, LocalMigration[]>();
+  for (const migration of localMigrations) {
+    const matches = localByHash.get(migration.hash) ?? [];
+    matches.push(migration);
+    localByHash.set(migration.hash, matches);
+  }
 
   for (const row of database.rows) {
     const bucket = dbByTimestamp.get(row.createdAt) ?? [];
@@ -77,7 +82,8 @@ export function analyzeDatabaseState(
     const localAtTimestamp = localByTimestamp.get(row.createdAt);
     if (localAtTimestamp) continue;
 
-    const localWithHash = localByHash.get(row.hash);
+    const localMatches = localByHash.get(row.hash) ?? [];
+    const localWithHash = localMatches[0];
     summary.databaseOnly += 1;
 
     if (localWithHash) {
@@ -85,13 +91,25 @@ export function analyzeDatabaseState(
         finding(
           'DATABASE_TIMESTAMP_MISMATCH',
           'error',
-          `Database migration ${row.id} has the hash of ${localWithHash.tag} but a different created_at.`,
-          'The local journal timestamp may have been rewritten after the migration was applied.',
-          {
-            databaseCreatedAt: row.createdAt,
-            localCreatedAt: localWithHash.when,
-            tag: localWithHash.tag,
-          },
+          localMatches.length === 1
+            ? `Database migration ${row.id} has the hash of ${localWithHash.tag} but a different created_at.`
+            : `Database migration ${row.id} has the hash of multiple local migrations but a different created_at.`,
+          localMatches.length === 1
+            ? 'The local journal timestamp may have been rewritten after the migration was applied.'
+            : 'Identical SQL hashes do not identify a unique migration. Inspect the candidate journal entries and database history before changing timestamps.',
+          localMatches.length === 1
+            ? {
+                databaseCreatedAt: row.createdAt,
+                localCreatedAt: localWithHash.when,
+                tag: localWithHash.tag,
+              }
+            : {
+                databaseCreatedAt: row.createdAt,
+                localMatches: localMatches.map((migration) => ({
+                  tag: migration.tag,
+                  localCreatedAt: migration.when,
+                })),
+              },
         ),
       );
     } else {

@@ -6,6 +6,13 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- report all local candidates for database timestamp mismatches when multiple
+  migrations share identical SQL hashes, instead of attributing the row to the
+  last journal entry; unique-match details, error severity, and migration state
+  classification are unchanged
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

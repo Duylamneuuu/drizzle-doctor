@@ -62,6 +62,25 @@ describe('upstream hash equivalence (drizzle-orm 0.45.4)', () => {
     }
   });
 
+  it('allows identical SQL hashes at distinct journal timestamps', async () => {
+    const dir = await fixture(
+      [
+        { idx: 0, when: 1000, tag: '0000_first', breakpoints: true },
+        { idx: 1, when: 2000, tag: '0001_second', breakpoints: true },
+      ],
+      { '0000_first.sql': 'select 1;', '0001_second.sql': 'select 1;' },
+    );
+
+    const upstream = readMigrationFiles({ migrationsFolder: dir });
+    const ours = await inspectMigrationRepository(dir);
+
+    expect(ours.findings).toEqual([]);
+    expect(upstream).toHaveLength(2);
+    expect(upstream[0]?.hash).toBe(upstream[1]?.hash);
+    expect(upstream.map((migration) => migration.folderMillis)).toEqual([1000, 2000]);
+    expect(ours.migrations.map((migration) => migration.hash)).toEqual(upstream.map((migration) => migration.hash));
+  });
+
   it('hashes exactly the raw file bytes, including breakpoint markers and final newlines', async () => {
     const sql = 'select 1;\n--> statement-breakpoint\nselect 2;\n';
     const dir = await fixture([{ idx: 0, when: 1000, tag: '0000_x', breakpoints: true }], {
