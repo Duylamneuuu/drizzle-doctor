@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- reject migration SQL changed between repository inspection and replay before
+  executing that migration or recording its stale hash; retain already committed
+  earlier migrations on the disposable target
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
