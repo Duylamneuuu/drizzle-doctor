@@ -88,6 +88,13 @@ Patch/minor updates can be routine when compatibility and CI are clean. Major up
 
 Do not raise the supported Node version just to make a dependency PR easier to merge.
 
+Dependabot excludes Vitest 5 and later while Node 20 is supported. The published
+`vitest@5.0.3` engine range is `^22.12.0 || ^24.0.0 || >=26.0.0`, so a passing
+Node 20 job does not establish supported compatibility: npm can install packages
+with an unsupported engine while only emitting a warning. Vitest 4 patch/minor
+updates remain eligible. Revisit the exclusion only after a maintainer-approved
+Node support-floor decision; do not raise the floor to accept this update.
+
 ## Evidence expected in an automated PR
 
 Include:
