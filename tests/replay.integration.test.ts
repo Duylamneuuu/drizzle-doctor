@@ -8,7 +8,7 @@
 // other objects land wherever the SQL points them. Fixtures therefore use
 // schema-qualified object names (as drizzle-kit generates for custom
 // schemas) so assertions are deterministic.
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -82,6 +82,36 @@ suite('replayMigrations', () => {
     } finally {
       await cleanup.end();
     }
+  });
+
+  it('rechecks SQL containment if a file is replaced with an escaping symlink after inspection', async () => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    expect(inspection.findings).toEqual([]);
+    const sqlPath = inspection.migrations[0]!.sqlPath;
+    const outsidePath = path.join(path.dirname(dir), 'outside.sql');
+    await writeFile(outsidePath, `create table ${q('never_table')}(id integer);`);
+    await rm(sqlPath);
+    await symlink(outsidePath, sqlPath);
+
+    await expect(replayMigrations({
+      connectionString: connectionString!,
+      schema,
+      table: '__drizzle_migrations',
+      migrations: inspection.migrations,
+    })).rejects.toThrow('File resolves outside the configured migrations directory.');
+
+    const snapshot = await readPostgresMigrationState({
+      connectionString: connectionString!, schema, table: '__drizzle_migrations',
+    });
+    expect(snapshot.rows).toEqual([]);
+    const target = await client.query<{ target: string | null }>(
+      'select to_regclass($1) as target', [`${schema}.never_table`],
+    );
+    expect(target.rows[0]?.target).toBeNull();
   });
 
   it('replays a healthy multi-migration history and records Drizzle bookkeeping rows', async () => {

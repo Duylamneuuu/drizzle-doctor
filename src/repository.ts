@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { readMigrationFile } from './migration-file.js';
 import type { Finding, LocalMigration, RepoInspection } from './types.js';
 
 type JournalEntry = {
@@ -69,7 +70,7 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
 
   let rawJournal: string;
   try {
-    rawJournal = await readFile(journalPath, 'utf8');
+    rawJournal = await readMigrationFile(migrationsDir, journalPath);
   } catch (error) {
     if (isMissingFile(error)) {
       findings.push(
@@ -86,7 +87,7 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
           'REPO_JOURNAL_UNREADABLE',
           'error',
           `Drizzle journal exists but could not be read at ${journalPath}.`,
-          'Check file permissions and that the path is a regular file.',
+          'Check file permissions, that the path is a regular file, and that symlinks stay inside the migrations directory.',
           { error: error instanceof Error ? error.message : String(error) },
         ),
       );
@@ -216,7 +217,7 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
     const sqlPath = path.join(migrationsDir, `${entry.tag}.sql`);
     let sql: string;
     try {
-      sql = await readFile(sqlPath, 'utf8');
+      sql = await readMigrationFile(migrationsDir, sqlPath);
     } catch (error) {
       if (isMissingFile(error)) {
         findings.push(
@@ -234,7 +235,7 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
             'MIGRATION_SQL_UNREADABLE',
             'error',
             `Journal entry ${entry.tag} references a SQL file that exists but could not be read.`,
-            'Check file permissions and that the file is a regular file.',
+            'Check file permissions, that the file is a regular file, and that symlinks stay inside the migrations directory.',
             { tag: entry.tag, sqlPath, error: error instanceof Error ? error.message : String(error) },
           ),
         );

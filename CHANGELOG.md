@@ -6,6 +6,13 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- reject journal and SQL symlink targets outside the configured migrations
+  directory before reading/hashing them; recheck SQL containment during replay,
+  while preserving in-directory symlinks and symlinked migration roots; reject
+  non-regular inputs without blocking on named pipes
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

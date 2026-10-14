@@ -32,10 +32,11 @@
 // the CLI requires an explicit --database-url (this module never reads
 // DATABASE_URL) and an affirmative --confirm-destructive flag.
 
-import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import { Client } from 'pg';
 
+import { readMigrationFile } from './migration-file.js';
 import { quoteIdentifier } from './postgres.js';
 import { redactConnectionString } from './sanitize.js';
 import type { LocalMigration, ReplayFailure, ReplayResult } from './types.js';
@@ -123,7 +124,7 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
 
     let applied = 0;
     for (const migration of migrations) {
-      const sql = await readFile(migration.sqlPath, 'utf8');
+      const sql = await readMigrationFile(path.dirname(migration.sqlPath), migration.sqlPath);
       const chunks = splitChunks(sql);
 
       await client.query('begin');
