@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   actionAnnotationFor,
+  actionLogFor,
   escapeActionAnnotation,
   renderActionSummary,
 } from '../src/action-summary.js';
@@ -87,6 +88,28 @@ describe('action summary helpers (M4)', () => {
     expect(line.startsWith('::error title=drizzle-doctor [MIGRATION_SQL_MISSING]::')).toBe(true);
     expect(line).toContain('Line one%0Aline two %25 done');
     expect(escapeActionAnnotation('a\rb')).toBe('a%0Db');
+  });
+
+  it('keeps workflow-command payloads inert in plain finding logs', () => {
+    const line = actionLogFor({
+      code: 'JOURNAL_DUPLICATE_TAG',
+      severity: 'error',
+      message: 'tag\r\n::warning::forged\r::error::forged ##[warning]legacy',
+    });
+    expect(line).toBe('ERROR [JOURNAL_DUPLICATE_TAG] tag\\r\\n::warning::forged\\r::error::forged ##\\[warning]legacy');
+    expect(line).not.toMatch(/[\r\n]/);
+    expect(line).not.toContain('##[');
+    expect(actionLogFor({ code: 'MIGRATION_SQL_MISSING', severity: 'error', message: 'Missing SQL: 50% done.' }))
+      .toBe('ERROR [MIGRATION_SQL_MISSING] Missing SQL: 50% done.');
+  });
+
+  it('neutralizes legacy workflow commands in summary stdout fallback', () => {
+    const summary = renderActionSummary(report({
+      findings: [{ code: 'JOURNAL_DUPLICATE_TAG', severity: 'error', message: 'tag\n::warning::forged ##[warning]legacy' }],
+    }));
+    expect(summary).not.toContain('\n::warning::');
+    expect(summary).not.toContain('##[');
+    expect(summary).toContain('##\\[warning]legacy');
   });
 
   it('never echoes a database URL through the renderer', () => {

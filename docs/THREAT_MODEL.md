@@ -65,6 +65,11 @@ Composite Action inputs are mapped through environment variables and quoted as
 Bash array values. Caller-supplied paths/schema/table names are never
 interpolated into shell source.
 
+Finding messages can contain untrusted migration tags. Plain Action logs escape
+CR/LF and legacy `##[` command prefixes so repository input cannot forge GitHub
+workflow commands. Summary cells also neutralize legacy command prefixes in the
+stdout fallback. Intentional error annotations use workflow-command data escaping.
+
 ### False reassurance
 
 A PASS means only that implemented checks found no error-level findings. It is not proof that application schema or migration SQL is logically correct. Documentation and output should avoid presenting the tool as a full database verifier.
