@@ -16,6 +16,23 @@ tool models Drizzle migration semantics that can change upstream.
   - PostgreSQL migrator, high-watermark logic and migration table DDL:
     https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/pg-core/dialect.ts
 
+## Runtime validation matrix
+
+The CI workflow checks the following combinations with the pinned
+`drizzle-orm@0.45.4` compatibility fixtures:
+
+| Validation | Node.js | PostgreSQL |
+| --- | --- | --- |
+| Typecheck, unit/CLI/upstream tests, build | 20, 22, 24 | Not required; database integration tests skip without a target |
+| PostgreSQL status and replay integration tests | 22 | 16 |
+| Packed tarball consumer install and CLI smoke test | 22, 24 | Not required |
+
+Node 24 is an [LTS release](https://nodejs.org/en/about/previous-releases).
+Its CI coverage supplements, rather than replaces, the supported Node 20
+and 22 checks. The package's Node `>=20` requirement is unchanged. Passing
+unit tests on a Node version does not establish PostgreSQL integration
+coverage on that runtime or compatibility with other Drizzle versions.
+
 ## Verified semantics
 
 ### Journal layout (`readMigrationFiles`)

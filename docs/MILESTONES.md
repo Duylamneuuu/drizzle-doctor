@@ -399,6 +399,10 @@ Turn implicit assumptions into explicit compatibility and policy surfaces.
 
 #### M5.1 Drizzle compatibility matrix
 
+Runtime validation is recorded in `docs/COMPATIBILITY.md`: CI covers Node
+20/22/24, PostgreSQL 16 on Node 22, and packed-package consumers on Node
+22/24. This does not complete the broader Drizzle Kit/version matrix.
+
 Track tested combinations of:
 
 - Drizzle ORM versions/ranges
