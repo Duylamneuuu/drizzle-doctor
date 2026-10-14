@@ -51,6 +51,8 @@ describe('packed package surface (M2.2)', () => {
     expect(help.stdout).toContain('status');
   }, 30_000);
 
+  // npm pack can exceed Vitest's default 5s under concurrent CLI/build load.
+  // Match the other subprocess tests without relaxing artifact assertions.
   it('publishes only intended files in the tarball', async () => {
     const pack = await run(['npm', 'pack', '--dry-run', '--json']);
     expect(pack.code).toBe(0);
@@ -77,7 +79,7 @@ describe('packed package surface (M2.2)', () => {
     expect(files.some((file) => file.includes('.github'))).toBe(false);
     expect(files.some((file) => file.includes('.git'))).toBe(false);
     expect(entries[0]?.filename).toBe(`drizzle-doctor-${packageJson.version}.tgz`);
-  });
+  }, 30_000);
 
   it('the built library export resolves', async () => {
     const build = await run(['npm', 'run', 'build']);
