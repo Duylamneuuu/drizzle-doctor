@@ -10,6 +10,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { inspectMigrationRepository } from '../src/repository.js';
 
 const MIGRATION_COUNT = 2000;
+// Include fixture creation in the outer timeout, without weakening the
+// inspection-only 30-second performance guard below.
+const TEST_TIMEOUT_MS = 60_000;
 const tempDirs: string[] = [];
 
 afterEach(async () => {
@@ -48,5 +51,5 @@ describe('large migration history (P1.6)', () => {
     // would exceed this by orders of magnitude, while a correct one finishes
     // in well under a second locally. Deliberately loose for slow CI runners.
     expect(elapsedMs).toBeLessThan(30_000);
-  });
+  }, TEST_TIMEOUT_MS);
 });
