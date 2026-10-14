@@ -94,6 +94,40 @@ suite('readPostgresMigrationState', () => {
     expect(snapshot.rows).toEqual([{ id: 1, hash: 'hash-custom', createdAt: 3000 }]);
   });
 
+  it('does not mistake an inaccessible migration table for a missing table', async () => {
+    if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
+
+    const role = 'drizzle_doctor_visibility_reader';
+    // Synthetic credentials for this disposable integration database only.
+    const restrictedUrl = new URL(connectionString);
+    restrictedUrl.username = role;
+    restrictedUrl.password = 'doctor_visibility_test';
+    const client = new Client({ connectionString });
+    await client.connect();
+    try {
+      await client.query(`CREATE ROLE ${role} LOGIN PASSWORD 'doctor_visibility_test'`);
+      try {
+        await client.query(`GRANT USAGE ON SCHEMA ${schema} TO ${role}`);
+        const options = { connectionString: restrictedUrl.toString(), schema };
+
+        await expect(readPostgresMigrationState(options)).rejects.toMatchObject({ code: '42501' });
+
+        const missing = await readPostgresMigrationState({ ...options, table: 'missing_migrations' });
+        expect(missing).toEqual({ schema, table: 'missing_migrations', tableExists: false, rows: [] });
+
+        await client.query(`GRANT SELECT ON ${schema}.__drizzle_migrations TO ${role}`);
+        const snapshot = await readPostgresMigrationState(options);
+        expect(snapshot.tableExists).toBe(true);
+        expect(snapshot.rows).toHaveLength(2);
+      } finally {
+        await client.query(`DROP OWNED BY ${role}`);
+        await client.query(`DROP ROLE ${role}`);
+      }
+    } finally {
+      await client.end();
+    }
+  });
+
   it('flags a skip hazard against real database rows', async () => {
     if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
 
