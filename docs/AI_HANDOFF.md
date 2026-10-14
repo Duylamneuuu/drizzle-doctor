@@ -332,6 +332,18 @@ Do not jump directly to broad adapter support or feature expansion. The active s
 
 See `docs/MILESTONES.md` for gates and exact completion criteria.
 
+Maintenance validation 2026-10-14: the P1.6 2,000-migration scale test timed
+out under Vitest's default 5-second limit, which includes fixture creation,
+before its intended 30-second inspection guard could run. The test now has
+an explicit 60-second outer timeout; the migration count, correctness
+assertions, and inspection-only performance guard are unchanged. Full local
+validation passed (typecheck, 114 tests; 11 PostgreSQL integration tests
+skipped without `TEST_DATABASE_URL`, build, and `npm pack --dry-run`). The
+scale test took 6 seconds in that passing full-suite run. PostgreSQL and
+Node 20/22 coverage remain required CI gates. Prioritize landing the pending
+credential-redaction and fail-safe PostgreSQL fixes; npm publication is
+still maintainer-gated.
+
 ## 5. Existing GitHub tasks
 
 Open issue tracking the next release gate:
