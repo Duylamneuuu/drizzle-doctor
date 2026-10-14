@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- `status` now fails with an operational error when the configured PostgreSQL
+  migration table exists but the connection role cannot read it, instead of
+  reporting the table as missing and all local migrations as pending.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

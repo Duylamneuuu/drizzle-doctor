@@ -22,6 +22,11 @@ Migration SQL and journal files are treated as input data for `repo` and `status
 
 For production use, prefer a database role that can read the migration metadata but cannot modify schema/data.
 
+Table discovery uses PostgreSQL's system catalog rather than the
+privilege-filtered `information_schema.tables` view. An existing migration
+table without `SELECT` permission must fail inspection (CLI exit `2`), not
+produce a missing-table finding or a successful pending-only report.
+
 ### Reports and logs
 
 Reports may contain:
