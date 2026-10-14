@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- compute the database migration high-watermark without spreading every row
+  into a function call, preventing an analyzer crash on very large histories
+  while preserving duplicate-timestamp errors and skipped-migration detection
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

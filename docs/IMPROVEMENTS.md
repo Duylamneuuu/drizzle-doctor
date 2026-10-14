@@ -155,6 +155,12 @@ generous linear-time bound (guarding against accidental quadratic behavior).
 Measurement: the 2000-migration fixture completes in ~1s locally; no algorithm
 change was needed.
 
+Analyzer follow-up (2026-10-14): `tests/analyze.test.ts` also covers a
+250,000-row database snapshot. The high-watermark is computed iteratively
+while indexing rows, avoiding JavaScript's function-argument limit without
+weakening duplicate-timestamp or skip-hazard findings. Empty-table and
+negative-timestamp cases pin the existing maximum/null semantics.
+
 Current histories are normally small, so do not prematurely optimize. Still, add one scale test with a large synthetic journal to catch accidental quadratic behavior or huge output growth.
 
 Measure before changing algorithms ✅ (measured; no change needed).
