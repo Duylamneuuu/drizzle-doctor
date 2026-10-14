@@ -146,8 +146,43 @@ describe('database row ambiguity (P1.1)', () => {
 
     expect(result.summary.databaseOnly).toBe(1);
     expect(result.summary.skippedHazards).toBe(1);
-    expect(result.findings.some((item) => item.code === 'DATABASE_TIMESTAMP_MISMATCH')).toBe(true);
+    expect(result.findings.find((item) => item.code === 'DATABASE_TIMESTAMP_MISMATCH')).toEqual({
+      code: 'DATABASE_TIMESTAMP_MISMATCH',
+      severity: 'error',
+      message: 'Database migration 1 has the hash of 0000_first but a different created_at.',
+      hint: 'The local journal timestamp may have been rewritten after the migration was applied.',
+      details: { databaseCreatedAt: 1500, localCreatedAt: 1000, tag: '0000_first' },
+    });
     expect(result.findings.some((item) => item.code === 'WOULD_BE_SKIPPED_BY_DRIZZLE')).toBe(true);
+  });
+
+  it('reports all identical-hash candidates instead of guessing a rewritten timestamp', () => {
+    const result = analyzeDatabaseState(
+      [local(0, 1000, '0000_first', 'same-hash'), local(1, 2000, '0001_second', 'same-hash')],
+      database([{ id: 1, createdAt: 1500, hash: 'same-hash' }]),
+    );
+
+    const mismatch = result.findings.find((item) => item.code === 'DATABASE_TIMESTAMP_MISMATCH');
+    expect(mismatch?.severity).toBe('error');
+    expect(mismatch?.message).toContain('multiple local migrations');
+    expect(mismatch?.details).toEqual({
+      databaseCreatedAt: 1500,
+      localMatches: [
+        { tag: '0000_first', localCreatedAt: 1000 },
+        { tag: '0001_second', localCreatedAt: 2000 },
+      ],
+    });
+    expect(result.summary).toMatchObject({ applied: 0, databaseOnly: 1, skippedHazards: 1, pending: 1 });
+  });
+
+  it('uses timestamp identity before identical SQL hashes', () => {
+    const result = analyzeDatabaseState(
+      [local(0, 1000, '0000_first', 'same-hash'), local(1, 2000, '0001_second', 'same-hash')],
+      database([{ id: 1, createdAt: 1000, hash: 'same-hash' }]),
+    );
+
+    expect(result.findings).toEqual([]);
+    expect(result.summary).toMatchObject({ applied: 1, pending: 1, databaseOnly: 0 });
   });
 
   it('database rows returned out of order produce identical results', () => {

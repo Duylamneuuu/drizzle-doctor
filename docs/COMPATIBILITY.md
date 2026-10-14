@@ -16,6 +16,12 @@ tool models Drizzle migration semantics that can change upstream.
   - PostgreSQL migrator, high-watermark logic and migration table DDL:
     https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/pg-core/dialect.ts
 
+Identical SQL at distinct journal timestamps produces identical hashes in the
+stable reader; tags/timestamps are not part of the hash. Re-verified against the
+current npm stable `drizzle-orm@0.45.4` on 2026-10-14 and pinned by
+`tests/upstream-semantics.test.ts`. Hash-only timestamp mismatch diagnostics must
+therefore list all local candidates rather than infer a unique migration identity.
+
 ## Verified semantics
 
 ### Journal layout (`readMigrationFiles`)

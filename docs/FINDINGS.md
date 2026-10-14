@@ -32,6 +32,17 @@ Finding codes are intended to become stable machine-readable identifiers once th
 | `MIGRATION_HASH_MISMATCH` | error | A local SQL file differs from the migration recorded at the same timestamp. |
 | `WOULD_BE_SKIPPED_BY_DRIZZLE` | error | A local migration is missing in the database and sits at/below the current database high-watermark. |
 
+### Timestamp mismatch identity
+
+`DATABASE_TIMESTAMP_MISMATCH` remains an error when a database row has no local
+timestamp match but shares a local SQL hash. SQL hashes are not unique migration
+identifiers: identical SQL at distinct journal timestamps is valid. With one
+candidate, details retain `tag` and `localCreatedAt`. With multiple candidates,
+details contain `databaseCreatedAt` and `localMatches` (each with `tag` and
+`localCreatedAt`, in journal order), without claiming one candidate was rewritten.
+Timestamp-and-hash matches still take precedence; repeated hashes alone are not
+an error. Applied/pending/skip-hazard classification is unchanged.
+
 ## Replay findings
 
 | Code | Severity | Meaning |
