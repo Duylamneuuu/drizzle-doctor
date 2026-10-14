@@ -85,6 +85,25 @@ afterEach(async () => {
 });
 
 describe('secret-pattern regression tests (P1.14, D11)', () => {
+  it.each([
+    { name: 'separate URL option', args: ['status', '--database-url', DUMMY_URL, `--unknown=${DUMMY_PASSWORD}`] },
+    { name: 'equals URL option', args: ['status', `--database-url=${DUMMY_URL}`, `--unknown=${DUMMY_PASSWORD}`] },
+    { name: 'URL in unknown status option', args: ['status', `--unknown=${DUMMY_URL}`] },
+    { name: 'URL in unknown repo option', args: ['repo', `--unknown=${DUMMY_URL}`] },
+    { name: 'URL with query credentials', args: ['status', `--unknown=${DUMMY_URL}?password=${DUMMY_PASSWORD}`] },
+    { name: 'URL as unknown command', args: [DUMMY_URL] },
+    { name: 'URL as unexpected argument', args: ['unknown-command', DUMMY_URL] },
+    { name: 'password from environment', args: ['unknown-command', DUMMY_PASSWORD], useEnv: true },
+  ])('usage errors redact credentials: $name', async ({ args, useEnv }) => {
+    const env = useEnv ? { ...process.env, DATABASE_URL: DUMMY_URL } : envWithoutDatabaseUrl();
+    const { code, stdout, stderr } = await run(args, env);
+    expect(code).toBe(2);
+    expect(stdout).toBe('');
+    expect(stderr).toContain('[REDACTED]');
+    expect(stderr).not.toMatch(/postgres(?:ql)?:\/\//i);
+    expectNoLeak(stdout, stderr);
+  });
+
   it('status --database-url failure in text mode never echoes the credential', async () => {
     const dir = await repoFixture();
     const { code, stdout, stderr } = await run(

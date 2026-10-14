@@ -6,6 +6,11 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- redact database URLs and known credentials in CLI usage errors, including
+  Commander's early parser output and unknown-command diagnostics
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
