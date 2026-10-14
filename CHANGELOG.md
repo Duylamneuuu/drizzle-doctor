@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Tests
+
+- Run PostgreSQL integration coverage on versions 16 and 18 in independent
+  CI jobs, and document the exact Node, Drizzle ORM, PostgreSQL, and packed-CLI
+  validation matrix. No runtime behavior or broader version-range claim changes.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

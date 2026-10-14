@@ -408,6 +408,10 @@ Track tested combinations of:
 
 Do not claim support solely because compilation succeeds.
 
+CI covers PostgreSQL 16 and 18 independently on Node.js 22, alongside the
+Node.js 20/22 non-database matrix. See `docs/COMPATIBILITY.md` for the exact
+test evidence and exclusions; untested intermediate versions are not claimed.
+
 #### M5.2 Stable finding schema
 
 - treat published finding codes as API
