@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- detect replay migration tables even when missing privileges hide them from
+  `information_schema`; fail before setup or migration SQL when existing
+  metadata cannot be read, rather than treating the target as fresh
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
