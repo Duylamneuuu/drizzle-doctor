@@ -83,6 +83,10 @@ of these:
   table or the run is refused
 - credentials are not logged: connection failures and migration errors are
   sanitized before they reach stderr or the JSON report (invariant D11)
+- overlapping replay invocations coordinate through a session advisory lock
+  before inspecting/creating the migration table. Contention fails before
+  mutation; connection closure releases the lock on success or failure. This
+  does not exclude external writers, so the target must still be isolated.
 - failing migration/statement is reported without dumping sensitive data
   unnecessarily (tag, breakpoint-chunk index, SQLSTATE, sanitized message)
 - test suite includes a guard against accidental use of a production-style
