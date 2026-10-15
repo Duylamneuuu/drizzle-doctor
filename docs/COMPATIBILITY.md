@@ -101,7 +101,7 @@ it deserve error severity?
 ## Replay semantics (M3)
 
 The `replay` command (`src/replay.ts`) models the upstream PostgreSQL migrator
-for execution, with two deliberate diagnostic deviations. Verified against the
+for execution, with the deliberate diagnostic deviations below. Verified against the
 same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`).
 
 ### Matches upstream
@@ -132,6 +132,19 @@ same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`)
    fresh table; skipping already-applied migrations could silently validate a
    history that never applied end-to-end. Reset the disposable target and
    re-run to continue after a failure.
+3. **Exclusive replay session.** Before inspecting or creating the target,
+   replay acquires a non-blocking, session-level PostgreSQL advisory lock
+   keyed by the configured schema/table identifiers. It retains the lock
+   across migration commits until its dedicated connection closes. A competing
+   replay fails operationally (exit `2`) before DDL or migration execution,
+   rather than letting both runs pass the empty-table check. This coordinates
+   `drizzle-doctor` replays only, not upstream migrators or external writers.
+   Identifier truncation/quoting is reflected in the key; hash collisions can
+   conservatively refuse an unrelated target, never allow duplicate replay.
+   This is cooperative coordination, not an isolation/security boundary:
+   migration SQL that explicitly releases session advisory locks (for example,
+   `pg_advisory_unlock_all()`) can bypass it. Such session-control SQL must
+   not be used when relying on replay exclusion.
 
 ### Replay finding mapping
 

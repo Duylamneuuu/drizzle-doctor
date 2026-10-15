@@ -52,6 +52,8 @@ Safety rules:
 - `replay` never reads `DATABASE_URL`; it requires an explicit `--database-url`
 - it refuses to start without `--confirm-destructive`
 - it refuses targets whose Drizzle migration table already has rows (a clean replay is only meaningful from an empty table)
+- overlapping `drizzle-doctor` replays against the same migration table are refused with exit `2` before any DDL or migration SQL; wait for the other run to finish and use a fresh disposable target
+- this advisory coordination requires migration SQL to leave session locks intact; it is not isolation from SQL that releases advisory locks or from external writers
 - every database error is sanitized; credentials never appear in output
 
 ## Safety

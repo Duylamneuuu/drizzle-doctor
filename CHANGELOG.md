@@ -6,6 +6,14 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- refuse overlapping clean replay against the same migration table before
+  inspection or DDL, preventing two runs from both accepting an empty target
+  and applying non-idempotent SQL twice. The per-target session advisory lock
+  is released on success or failure; contention is an operational error
+  (exit `2`). Read-only `repo` and `status` behavior is unchanged.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

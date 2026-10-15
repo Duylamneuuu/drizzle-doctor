@@ -13,7 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { Client } from 'pg';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readPostgresMigrationState } from '../src/postgres.js';
 import { replayMigrations } from '../src/replay.js';
@@ -119,6 +119,13 @@ suite('replayMigrations', () => {
 
     const accounts = await client.query(`select name from ${q('accounts')}`);
     expect(accounts.rows).toEqual([{ name: 'alice' }]);
+
+    // The successful run released its session lock: retry reaches the usual
+    // non-empty-target refusal rather than an operational contention error.
+    const retry = await replayMigrations({
+      connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspection.migrations,
+    });
+    expect(retry.blocked).toBe('TARGET_NOT_EMPTY');
   });
 
   it('supports custom migration schema and table names', async () => {
@@ -204,6 +211,12 @@ suite('replayMigrations', () => {
       code: '42P01', // undefined_table
     });
 
+    // Returning a migration failure also releases the session lock.
+    const retry = await replayMigrations({
+      connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspection.migrations,
+    });
+    expect(retry.blocked).toBe('TARGET_NOT_EMPTY');
+
     // Migration 0000 committed (per-migration transaction); 0001 rolled back,
     // so the post-failure chunk never ran.
     const neverExists = await client.query(
@@ -271,6 +284,105 @@ suite('replayMigrations', () => {
     );
     expect(exists.rows[0]?.exists).toBe(true);
     await client.query('drop table if exists public.plain_table cascade');
+  });
+
+  it('refuses overlapping replay of the same target before either run records a migration', async () => {
+    await client.query(`create table ${q('__drizzle_migrations')} (
+      id serial primary key, hash text not null, created_at bigint
+    )`);
+    await client.query(`create table ${q('effects')} (id int)`);
+
+    // Hold both migrations at a database-side gate. This reproduces the
+    // empty-table race without relying on sleep durations or query timing.
+    const gateNamespace = 1863202768;
+    const session = await client.query<{ pid: number }>('select pg_backend_pid() as pid');
+    const pid = session.rows[0]!.pid;
+    await client.query('select pg_advisory_lock($1, $2)', [gateNamespace, pid]);
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }],
+      { '0000_first.sql': `select pg_advisory_xact_lock(${gateNamespace}, ${pid}); insert into ${q('effects')} values (1);` },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    const options = {
+      connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspection.migrations,
+    };
+    const waitingAtGate = async () => {
+      const result = await client.query<{ n: number }>(
+        `select count(*)::int as n from pg_locks
+         where locktype = 'advisory' and classid = $1 and objid = $2 and not granted`,
+        [gateNamespace, pid],
+      );
+      return result.rows[0]!.n;
+    };
+
+    const first = replayMigrations(options);
+    // Handle unexpected early rejection immediately; outcomes below still
+    // assert the original result after releasing the gate.
+    void first.catch(() => undefined);
+    let second: ReturnType<typeof replayMigrations> | undefined;
+    let secondFinished = false;
+    let outcomes: PromiseSettledResult<Awaited<typeof first>>[] = [];
+    try {
+      await vi.waitFor(async () => expect(await waitingAtGate()).toBe(1), { timeout: 5_000 });
+      second = replayMigrations(options);
+      void second.then(
+        () => { secondFinished = true; },
+        () => { secondFinished = true; },
+      );
+      await vi.waitFor(async () => {
+        expect(secondFinished || (await waitingAtGate()) === 2).toBe(true);
+      }, { timeout: 5_000 });
+    } finally {
+      await client.query('select pg_advisory_unlock($1, $2)', [gateNamespace, pid]);
+      outcomes = await Promise.allSettled(second ? [first, second] : [first]);
+    }
+
+    expect(outcomes[0]).toMatchObject({ status: 'fulfilled', value: { applied: 1 } });
+    expect(outcomes[1]).toMatchObject({
+      status: 'rejected', reason: { message: 'Another replay is already running against this migration table.' },
+    });
+    const effects = await client.query(`select count(*)::int as n from ${q('effects')}`);
+    expect(effects.rows[0]?.n).toBe(1);
+    const history = await client.query(`select count(*)::int as n from ${q('__drizzle_migrations')}`);
+    expect(history.rows[0]?.n).toBe(1);
+  });
+
+  it.each(['__drizzle_migrations', 'history_'.repeat(10)])('locks PostgreSQL identifier aliases before creating target %s', async (table) => {
+    // Hold the lock under the actual (possibly truncated) PostgreSQL name,
+    // then replay with the original input. No schema/table may be created.
+    const key = await client.query<{ key: number }>(
+      `select hashtext(format('%I.%I', $1::name, $2::name)) as key`, [schema, table],
+    );
+    await client.query("select pg_advisory_lock(hashtext('drizzle-doctor/replay'), $1)", [key.rows[0]!.key]);
+    try {
+      await expect(replayMigrations({ connectionString: connectionString!, schema, table, migrations: [] }))
+        .rejects.toThrow('Another replay is already running against this migration table.');
+      const tables = await client.query('select table_name from information_schema.tables where table_schema = $1', [schema]);
+      expect(tables.rows).toEqual([]);
+
+      // A different metadata table has an independent lock.
+      const other = await replayMigrations({ connectionString: connectionString!, schema, table: 'other_history', migrations: [] });
+      expect(other.applied).toBe(0);
+      expect(other.blocked).toBeUndefined();
+    } finally {
+      await client.query("select pg_advisory_unlock(hashtext('drizzle-doctor/replay'), $1)", [key.rows[0]!.key]);
+    }
+  });
+
+  it('releases the replay lock after an operational failure', async () => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    const options = {
+      connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspection.migrations,
+    };
+    await expect(replayMigrations({
+      ...options,
+      migrations: [{ ...inspection.migrations[0]!, sqlPath: path.join(dir, 'missing.sql') }],
+    })).rejects.toThrow();
+    expect(await replayMigrations(options)).toMatchObject({ applied: 1 });
   });
 
   it('refuses a target whose migration table already has rows', async () => {

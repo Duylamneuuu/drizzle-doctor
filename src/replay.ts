@@ -14,7 +14,7 @@
 //   migration rows), the upstream high-watermark is always absent, so no
 //   migration is skipped
 //
-// Deliberate deviations, both of which make replay a useful *diagnostic*
+// Deliberate deviations, which make replay a useful *diagnostic*
 // rather than a deployment:
 //
 // - each migration runs in its own transaction instead of one transaction
@@ -27,6 +27,8 @@
 //   table already contains rows. A "clean replay" from zero is only
 //   meaningful on a fresh table; skipping already-applied migrations could
 //   silently validate a history that never applied end-to-end.
+// - a session advisory lock excludes overlapping replay runs against the
+//   same metadata table, including the initial empty-target check and DDL.
 //
 // Replay is destructive by definition and must never be reached implicitly:
 // the CLI requires an explicit --database-url (this module never reads
@@ -84,6 +86,24 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
   try {
     const schemaIdent = quoteIdentifier(schema);
     const tableIdent = quoteIdentifier(table);
+
+    // Hold across per-migration commits until this dedicated session ends.
+    // Acquire before inspecting/creating the target: two empty-table checks
+    // must not both succeed and replay the same non-idempotent SQL. Cast to
+    // name so aliases truncated by PostgreSQL use the same lock key; format
+    // quotes each component so names containing dots cannot alias the pair.
+    // This coordinates cooperating runs, not SQL that explicitly releases
+    // session locks (for example, pg_advisory_unlock_all()).
+    const lock = await client.query<{ acquired: boolean }>(
+      `select pg_catalog.pg_try_advisory_lock(
+        pg_catalog.hashtext('drizzle-doctor/replay'),
+        pg_catalog.hashtext(pg_catalog.format('%I.%I', $1::name, $2::name))
+      ) as acquired`,
+      [schema, table],
+    );
+    if (!lock.rows[0]?.acquired) {
+      throw new Error('Another replay is already running against this migration table.');
+    }
 
     const existing = await client.query<{ exists: boolean }>(
       `select exists (
@@ -155,6 +175,7 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
 
     return { schema, table, total: migrations.length, applied };
   } finally {
+    // Ending the session releases the advisory lock on every exit path.
     await client.end();
   }
 }
