@@ -9,6 +9,15 @@ The human-readable text report is intentionally not part of this contract;
 only the JSON shape, exit codes, and finding codes are stable machine
 surfaces.
 
+## Text rendering
+
+Human-readable reports escape C0/C1 control characters and Unicode line
+separators in data as literal `\n`, `\r`, `\t`, or `\uXXXX` sequences. Only
+formatter-owned newlines delimit report lines. This prevents terminal escape
+execution and forged result lines from untrusted tags, paths, identifiers, or
+error messages. JSON values and the machine-readable contract are unchanged;
+JSON consumers must escape decoded data for their own display context.
+
 ## Exit codes
 
 | Code | Meaning |

@@ -53,6 +53,15 @@ Journal tags are accepted only as root-level file names (no POSIX or Windows
 path separators). This prevents malformed repository metadata from making an
 audit read, hash, or replay a file outside the configured migrations directory.
 
+### Terminal control injection
+
+Migration tags, filenames, schema/table identifiers, and database errors are
+untrusted display text. Text reports escape C0/C1 control characters and Unicode
+line separators so they cannot execute terminal commands or forge report lines.
+Formatter-owned newlines remain intact. JSON reports retain the original data
+values (with JSON encoding); consumers must apply their own display-context
+escaping rather than printing decoded values directly to a terminal.
+
 ### SQL identifier injection
 
 Custom migration schema/table names are identifier-quoted before query construction. Values used for metadata lookups are parameterized.

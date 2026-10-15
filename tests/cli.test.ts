@@ -51,6 +51,24 @@ afterEach(async () => {
 });
 
 describe('cli exit behavior', () => {
+  it('renders malicious journal tags literally in text while retaining their JSON values', async () => {
+    const tag = '0000_\u001b[2J\r\nResult: PASS\u009b2J';
+    const dir = await repoFixture([{ idx: 0, when: 1000, tag, breakpoints: true }], {});
+    const text = await run(['repo', '-m', dir]);
+    expect(text.code).toBe(1);
+    expect(text.stdout).toContain('0000_\\u001b[2J\\r\\nResult: PASS\\u009b2J');
+    expect(text.stdout).not.toMatch(/[\u001b\r\u009b]/);
+    expect(text.stdout).not.toContain('\nResult: PASS');
+    expect(text.stdout).toMatch(/\nResult: FAIL\n$/);
+
+    const json = await run(['repo', '-m', dir, '--json']);
+    expect(json.code).toBe(1);
+    const report = JSON.parse(json.stdout);
+    expect(report.ok).toBe(false);
+    expect(report.findings[0].code).toBe('MIGRATION_SQL_MISSING');
+    expect(report.findings[0].message).toContain(tag);
+  });
+
   it('--help exits 0 and lists the commands', async () => {
     const { code, stdout } = await run(['--help']);
     expect(code).toBe(0);
