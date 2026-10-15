@@ -10,7 +10,7 @@ Finding codes are intended to become stable machine-readable identifiers once th
 | `REPO_JOURNAL_UNREADABLE` | error | `meta/_journal.json` exists but could not be read (permissions, not a regular file). |
 | `REPO_JOURNAL_INVALID_JSON` | error | The journal could not be parsed as JSON. |
 | `REPO_JOURNAL_INVALID_SHAPE` | error | The journal does not contain the expected `entries` array. |
-| `JOURNAL_ENTRY_INVALID` | error | An entry is missing required Drizzle metadata. |
+| `JOURNAL_ENTRY_INVALID` | error | An entry has missing or invalid Drizzle metadata, including a `when` timestamp that is not a nonnegative safe integer. |
 | `JOURNAL_DUPLICATE_INDEX` | error | Two journal entries use the same `idx`. |
 | `JOURNAL_DUPLICATE_TIMESTAMP` | error | Two journal entries use the same `when` timestamp. |
 | `JOURNAL_DUPLICATE_TAG` | error | A migration tag appears more than once. |

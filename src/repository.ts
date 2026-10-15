@@ -37,7 +37,9 @@ function parseEntry(value: unknown, position: number): JournalEntry | null {
   const raw = value as Record<string, unknown>;
 
   if (!Number.isInteger(raw.idx) || Number(raw.idx) < 0) return null;
-  if (!Number.isFinite(raw.when) || Number(raw.when) < 0) return null;
+  // PostgreSQL stores created_at as bigint; fractions cannot be inserted,
+  // and unsafe JS integers cannot be compared without precision loss.
+  if (!Number.isSafeInteger(raw.when) || Number(raw.when) < 0) return null;
   if (typeof raw.tag !== 'string' || raw.tag.trim().length === 0) return null;
   // Drizzle migration tags name root-level `<tag>.sql` files. Reject both
   // POSIX and Windows path syntax so a malformed/untrusted journal cannot
@@ -131,7 +133,7 @@ export async function inspectMigrationRepository(migrationsDirInput: string): Pr
           'JOURNAL_ENTRY_INVALID',
           'error',
           `Journal entry at position ${position} has an invalid shape.`,
-          'Expected idx:number, when:number, a non-empty root-level file tag, and breakpoints:boolean.',
+          'Expected idx:number, when:a nonnegative safe integer, a non-empty root-level file tag, and breakpoints:boolean.',
           { position },
         ),
       );

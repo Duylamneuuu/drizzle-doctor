@@ -26,6 +26,39 @@ afterEach(async () => {
 });
 
 describe('inspectMigrationRepository', () => {
+  it.each([1.5, Number.MAX_SAFE_INTEGER + 1, 1e30, -1, '1000', null])(
+    'rejects a journal timestamp that is not a nonnegative safe integer: %s',
+    async (when) => {
+      const migrationsDir = await fixture(
+        [{ idx: 0, when, tag: '0000_invalid', breakpoints: true }],
+        { '0000_invalid.sql': 'select 1;' },
+      );
+
+      const result = await inspectMigrationRepository(migrationsDir);
+
+      expect(result.migrations).toEqual([]);
+      expect(result.findings).toContainEqual(expect.objectContaining({
+        code: 'JOURNAL_ENTRY_INVALID', severity: 'error', details: { position: 0 },
+      }));
+      expect(hasErrors(result.findings)).toBe(true);
+    },
+  );
+
+  it.each([0, 1_700_000_000_000, Number.MAX_SAFE_INTEGER])(
+    'accepts a nonnegative safe integer journal timestamp: %s',
+    async (when) => {
+      const migrationsDir = await fixture(
+        [{ idx: 0, when, tag: '0000_valid', breakpoints: true }],
+        { '0000_valid.sql': 'select 1;' },
+      );
+
+      const result = await inspectMigrationRepository(migrationsDir);
+
+      expect(result.findings).toEqual([]);
+      expect(result.migrations[0]?.when).toBe(when);
+    },
+  );
+
   it('accepts a healthy Drizzle journal and computes hashes', async () => {
     const migrationsDir = await fixture(
       [
