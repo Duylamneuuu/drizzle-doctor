@@ -121,17 +121,35 @@ same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`)
 ### Deliberate deviations (diagnostic, safe because the target is disposable)
 
 1. **Per-migration transactions.** The upstream migrator wraps the whole batch
-   in one transaction and rolls everything back on failure. replay instead
+   in one transaction and attempts to roll it back on failure. replay instead
    commits each migration individually so the first failing migration is
    precisely identified and the disposable database retains applied state up
    to the failure. Per-statement results are identical for ordinary DDL/DML
-   histories; exotic session/temp-state dependencies across migrations are
-   the only place behavior could differ.
+   histories; session/temp-state and transaction-dependent SQL can differ.
 2. **Strict-clean target.** replay refuses to start when the migration table
    already contains rows. A clean replay from zero is only meaningful on a
    fresh table; skipping already-applied migrations could silently validate a
    history that never applied end-to-end. Reset the disposable target and
    re-run to continue after a failure.
+
+### Transaction-control SQL is not contained
+
+Both replay and the stable upstream migrator forward SQL chunks verbatim;
+neither parses or forbids transaction-control commands in migration SQL.
+An explicit `COMMIT` can end the runner's transaction before a later chunk
+fails. Its rollback attempt cannot undo those committed changes, and the
+migration can leave objects behind without a migration-history row. An empty
+history table is therefore not proof of an untouched database, even after a
+failed replay. Reset the entire disposable target before retrying.
+
+Verified against the installed npm-published `drizzle-orm@0.45.4` source
+(`pg-core/dialect.js`, `PgDialect.migrate`, and
+`node-postgres/session.js`, `NodePgSession.transaction`): the migrator sends
+each chunk via `tx.execute(sql.raw(stmt))`, and the session attempts `rollback`
+on failure. `tests/replay.integration.test.ts` executes the explicit-commit
+failure case against both replay and the real upstream migrator. This is a
+documented execution limitation, not a reason to rewrite user SQL or broaden
+the replay target beyond an explicitly disposable database.
 
 ### Replay finding mapping
 

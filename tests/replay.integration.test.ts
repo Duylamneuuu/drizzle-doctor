@@ -12,6 +12,8 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Client } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -211,6 +213,55 @@ suite('replayMigrations', () => {
       [schema, 'never_created'],
     );
     expect(neverExists.rows[0]?.exists).toBe(false);
+  });
+
+  it.each(['replay', 'upstream'] as const)('%s cannot roll back SQL committed by the migration itself', async (mode) => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_explicit_commit' }],
+      {
+        '0000_explicit_commit.sql': [
+          `create table ${q('explicitly_committed')}(id int);`,
+          'commit;',
+          `insert into ${q('missing_table')} values (1);`,
+          `create table ${q('after_failure')}(id int);`,
+        ].join('\n--> statement-breakpoint\n'),
+      },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    expect(inspection.findings).toEqual([]);
+
+    if (mode === 'replay') {
+      const result = await replayMigrations({
+        connectionString: connectionString!,
+        schema,
+        table: '__drizzle_migrations',
+        migrations: inspection.migrations,
+      });
+      expect(result.applied).toBe(0);
+      expect(result.firstFailure).toMatchObject({
+        tag: '0000_explicit_commit',
+        statement: 3,
+        statementCount: 4,
+        code: '42P01',
+      });
+    } else {
+      await expect(migrate(drizzle(client), {
+        migrationsFolder: dir,
+        migrationsSchema: schema,
+      })).rejects.toMatchObject({ cause: { code: '42P01' } });
+    }
+
+    // Both runners forward transaction-control SQL verbatim. Their rollback
+    // attempts cannot undo the migration's COMMIT, even with no history row.
+    const tables = await client.query<{ table_name: string }>(
+      'select table_name from information_schema.tables where table_schema = $1 order by table_name',
+      [schema],
+    );
+    expect(tables.rows.map((row) => row.table_name)).toEqual([
+      '__drizzle_migrations', 'explicitly_committed',
+    ]);
+    const history = await client.query(`select * from ${q('__drizzle_migrations')}`);
+    expect(history.rows).toEqual([]);
   });
 
   it('rolls back the failing migration but keeps earlier committed migrations', async () => {
