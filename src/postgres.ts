@@ -29,9 +29,12 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
   await client.connect();
 
   try {
+    // Pin a single backend even behind a transaction-pooling proxy. Also
+    // prevent SELECT from invoking writing views or row-security policies.
+    await client.query('begin read only');
     // Fail rather than accept an incomplete history when RLS would filter
     // rows. This does not bypass policies or grant any additional access.
-    await client.query('set row_security = off');
+    await client.query('set local row_security = off');
 
     const existence = await client.query<{ exists: boolean }>(
       `select exists (
@@ -44,6 +47,7 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
 
     const tableExists = Boolean(existence.rows[0]?.exists);
     if (!tableExists) {
+      await client.query('commit');
       return { schema, table, tableExists: false, rows: [] };
     }
 
@@ -64,7 +68,11 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
       };
     });
 
+    await client.query('commit');
     return { schema, table, tableExists: true, rows };
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
   } finally {
     await client.end();
   }

@@ -6,6 +6,9 @@
   filter migration history. Status no longer reports hidden rows as absent,
   and replay refuses before setup or migration SQL instead of treating a
   filtered history as an empty target. This does not bypass RLS policies.
+- Keep the RLS guard and metadata inspection in a single read-only
+  transaction, including behind transaction-pooling proxies, and clear the
+  guard at transaction end before replay setup.
 
 All notable changes to this project will be documented here.
 

@@ -94,8 +94,10 @@ Any change that adds write queries, telemetry, remote execution, automatic repai
 
 ### Row-level security and complete history
 
-Both PostgreSQL adapters explicitly set `row_security = off` on their own
-connection before inspecting migration history. PostgreSQL then raises an
+Both PostgreSQL adapters use `SET LOCAL row_security = off` inside an explicit
+read-only inspection transaction. This keeps the setting and metadata queries
+on one backend with transaction-pooling proxies, without leaking the setting
+to later users of that backend. PostgreSQL then raises an
 operational error if row-level security would filter a query, rather than
 returning a partial or empty history. This setting does **not** bypass RLS:
 roles that cannot see complete history must use an appropriately authorized
@@ -103,4 +105,10 @@ inspection role. In particular, replay must not execute SQL merely because
 RLS hides existing migration rows. Owners not subject to forced RLS and roles
 with legitimate RLS bypass privileges continue to work normally.
 
+Inspection transactions finish before replay setup or migration SQL. An
+inspection or transaction-end failure aborts the operation; cleanup attempts
+rollback before closing the connection. This is not a concurrency lock for
+replay: isolated disposable targets remain required.
+
 Reference: [PostgreSQL 16 `row_security`](https://www.postgresql.org/docs/16/runtime-config-client.html#GUC-ROW-SECURITY).
+Transaction-pooling boundary: [PgBouncer features](https://www.pgbouncer.org/features.html).
