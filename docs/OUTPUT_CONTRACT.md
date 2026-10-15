@@ -111,8 +111,8 @@ are Drizzle metadata-location identifiers, not secrets (D11).
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `tag` | `string` | Tag of the failing migration. |
-| `statement` | `number` | 1-based index of the failing Drizzle breakpoint chunk. |
-| `statementCount` | `number` | Total executed breakpoint chunks in the failing migration. |
+| `statement` | `number` | 1-based index of the failing Drizzle breakpoint chunk, counting empty chunks. |
+| `statementCount` | `number` | Total breakpoint chunks in the failing migration, including empty chunks. |
 | `code` | `string` (optional) | PostgreSQL SQLSTATE when the driver provided one. |
 | `message` | `string` | Sanitized database error message (credential-safe). |
 

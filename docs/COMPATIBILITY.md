@@ -110,7 +110,13 @@ same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`)
   `PgDialect.migrate` (`CREATE SCHEMA IF NOT EXISTS`, `CREATE TABLE IF NOT
   EXISTS ... (id serial primary key, hash text not null, created_at bigint)`)
 - splits each migration's SQL on the literal `--> statement-breakpoint`
-  separator, exactly like `readMigrationFiles`
+  separator, exactly like `readMigrationFiles`, preserving every raw chunk
+  (including leading/trailing whitespace and empty chunks). Do not trim:
+  JavaScript removes BOM/nonbreaking-space characters that PostgreSQL rejects,
+  which can turn an upstream failure into a false replay success. Re-verified
+  2026-10-15 against the npm-published `drizzle-orm@0.45.4` sources
+  (`migrator.js`, `pg-core/dialect.js`) and differential PostgreSQL tests using
+  the real migrator in `tests/replay.integration.test.ts`.
 - executes chunks verbatim with the session's default `search_path` — the
   migrator does not set `search_path`, so unqualified objects land wherever
   the session points (typically `public`); replay does the same

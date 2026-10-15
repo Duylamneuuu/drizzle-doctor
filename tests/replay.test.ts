@@ -24,16 +24,21 @@ function inspection(migrations: LocalMigration[] = [], findings: Finding[] = [])
 describe('splitChunks (M3)', () => {
   it('splits on the literal Drizzle breakpoint marker', () => {
     const sql = 'create table a(id int);--> statement-breakpoint\ninsert into a values (1);';
-    expect(splitChunks(sql)).toEqual(['create table a(id int);', 'insert into a values (1);']);
+    expect(splitChunks(sql)).toEqual(['create table a(id int);', '\ninsert into a values (1);']);
   });
 
   it('keeps a single chunk when there is no breakpoint', () => {
     expect(splitChunks('select 1;')).toEqual(['select 1;']);
   });
 
-  it('drops empty and whitespace-only chunks (trailing breakpoint)', () => {
-    expect(splitChunks('select 1;--> statement-breakpoint')).toEqual(['select 1;']);
-    expect(splitChunks('select 1;--> statement-breakpoint\n  \n')).toEqual(['select 1;']);
+  it('preserves empty and whitespace-only chunks, including trailing breakpoints', () => {
+    expect(splitChunks('select 1;--> statement-breakpoint')).toEqual(['select 1;', '']);
+    expect(splitChunks('select 1;--> statement-breakpoint\n  \n')).toEqual(['select 1;', '\n  \n']);
+    expect(splitChunks('')).toEqual(['']);
+  });
+
+  it.each(['\uFEFFselect 1;', '\u00A0select 1;', '\uFEFF', ' \tselect 1;\n'])('preserves raw SQL %j', (sql) => {
+    expect(splitChunks(sql)).toEqual([sql]);
   });
 
   it('keeps comment-only chunks as executable statements', () => {
