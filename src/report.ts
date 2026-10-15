@@ -204,7 +204,14 @@ export function formatTextReport(report: DoctorReport): string {
 
   lines.push('');
   lines.push(`Result: ${report.ok ? 'PASS' : 'FAIL'}`);
-  return lines.join('\n');
+  // Escape untrusted data within each logical line before adding our own
+  // separators. Paths, tags, identifiers and errors may contain ANSI/C1 controls.
+  return lines.map((line) => line.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (character) => {
+    if (character === '\n') return '\\n';
+    if (character === '\r') return '\\r';
+    if (character === '\t') return '\\t';
+    return `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`;
+  })).join('\n');
 }
 
 export function formatJsonReport(report: DoctorReport): string {
