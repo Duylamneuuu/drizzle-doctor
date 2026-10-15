@@ -37,7 +37,18 @@ They must not contain the database URL or credentials.
 
 ### Accidental production mutation
 
-Control: core database status adapter uses read queries only. Mutation belongs outside the product contract.
+Control: the status adapter runs both metadata queries in an explicit PostgreSQL
+`READ ONLY` transaction. A `SELECT` alone is not sufficient: a configured view or
+row-security policy can invoke a function that writes data. PostgreSQL rejects
+such ordinary database writes in the read-only transaction; inspection fails
+rather than silently allowing the side effect. The dedicated connection is
+always closed, ending the transaction on success and failure.
+
+Keep using least-privilege credentials as defense in depth. PostgreSQL's
+[read-only access mode](https://www.postgresql.org/docs/16/sql-set-transaction.html)
+is not a sandbox for an untrusted server or extensions with external side
+effects. Mutation belongs outside the status product contract; explicit
+disposable replay remains separate.
 
 ### Credential leakage
 

@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- enforce a PostgreSQL read-only transaction during `status` inspection so
+  metadata views or row-security functions cannot write ordinary database data
+  through a `SELECT`; retain least-privilege credential guidance
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

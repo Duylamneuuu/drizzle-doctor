@@ -29,6 +29,11 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
   await client.connect();
 
   try {
+    // SELECT can invoke writing functions through views or row-security
+    // policies. Enforce read-only on the server, not just in our query text.
+    // Closing this dedicated connection ends the transaction on every path.
+    await client.query('begin read only');
+
     const existence = await client.query<{ exists: boolean }>(
       `select exists (
         select 1

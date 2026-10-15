@@ -94,6 +94,72 @@ suite('readPostgresMigrationState', () => {
     expect(snapshot.rows).toEqual([{ id: 1, hash: 'hash-custom', createdAt: 3000 }]);
   });
 
+  it('runs metadata reads in a server-enforced read-only transaction', async () => {
+    if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
+
+    const client = new Client({ connectionString });
+    await client.connect();
+    try {
+      await client.query(`
+        create view "${schema}"."transaction_mode" as
+        select 1 as id, current_setting('transaction_read_only') as hash,
+               1000::bigint as created_at
+      `);
+    } finally {
+      await client.end();
+    }
+
+    const snapshot = await readPostgresMigrationState({
+      connectionString, schema, table: 'transaction_mode',
+    });
+
+    expect(snapshot.rows).toEqual([{ id: 1, hash: 'on', createdAt: 1000 }]);
+  });
+
+  it('rejects database-side writes invoked by a metadata SELECT', async () => {
+    if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
+
+    const client = new Client({ connectionString });
+    await client.connect();
+    try {
+      await client.query(`
+        create function "${schema}"."write_during_read"() returns text
+        language plpgsql as $$
+        begin
+          update "${schema}"."__drizzle_migrations" set hash = 'changed-by-select';
+          return 'hash-a';
+        end
+        $$
+      `);
+      await client.query(`
+        create view "${schema}"."side_effecting_log" as
+        select 1 as id, "${schema}"."write_during_read"() as hash,
+               1000::bigint as created_at
+      `);
+
+      await expect(readPostgresMigrationState({
+        connectionString, schema, table: 'side_effecting_log',
+      })).rejects.toMatchObject({ code: '25006' });
+
+      const result = await client.query<{ hash: string }>(
+        `select hash from "${schema}"."__drizzle_migrations" order by id`,
+      );
+      expect(result.rows).toEqual([{ hash: 'hash-a' }, { hash: 'hash-b' }]);
+    } finally {
+      await client.end();
+    }
+  });
+
+  it('still reports an absent migration table', async () => {
+    if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
+
+    const snapshot = await readPostgresMigrationState({
+      connectionString, schema, table: 'missing_log',
+    });
+
+    expect(snapshot).toEqual({ schema, table: 'missing_log', tableExists: false, rows: [] });
+  });
+
   it('flags a skip hazard against real database rows', async () => {
     if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
 
