@@ -159,15 +159,7 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
   }
 }
 
-/**
- * Splits migration SQL into executable chunks exactly like Drizzle's
- * `readMigrationFiles` (split on the literal breakpoint marker). Chunks that
- * are empty or whitespace-only are dropped: the upstream migrator sends them
- * as no-op queries, so skipping them produces identical database state.
- */
+/** Preserve raw chunks, including empty ones, exactly like Drizzle. */
 export function splitChunks(sql: string): string[] {
-  return sql
-    .split(BREAKPOINT)
-    .map((chunk) => chunk.trim())
-    .filter((chunk) => chunk.length > 0);
+  return sql.split(BREAKPOINT);
 }

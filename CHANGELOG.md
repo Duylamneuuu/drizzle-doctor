@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve raw SQL breakpoint chunks during replay, matching Drizzle instead of
+  trimming BOM/nonbreaking-space prefixes into false successes. Empty chunks
+  also retain their upstream positions in failure statement indexes.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

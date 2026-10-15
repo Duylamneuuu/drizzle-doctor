@@ -12,6 +12,8 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Client } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -82,6 +84,59 @@ suite('replayMigrations', () => {
     } finally {
       await cleanup.end();
     }
+  });
+
+  it.each([
+    ['BOM-prefixed SQL', '\uFEFFselect 1;', 1],
+    ['nonbreaking-space-prefixed SQL', '\u00A0select 1;', 1],
+    ['BOM-only SQL', '\uFEFF', 1],
+    ['BOM after an empty chunk', '--> statement-breakpoint\n\uFEFFselect 1;', 2],
+  ] as const)('matches upstream rejection of %s without trimming chunks', async (_label, sql, statement) => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_raw' }],
+      { '0000_raw.sql': sql },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    expect(inspection.findings).toEqual([]);
+
+    // Exercise the real pinned migrator, not a hand-written approximation.
+    await expect(migrate(drizzle(client), {
+      migrationsFolder: dir,
+      migrationsSchema: schema,
+    })).rejects.toMatchObject({ cause: { code: '42601' } });
+    await resetTarget(client);
+
+    const result = await replayMigrations({
+      connectionString: connectionString!,
+      schema,
+      table: '__drizzle_migrations',
+      migrations: inspection.migrations,
+    });
+    expect(result).toMatchObject({
+      applied: 0,
+      firstFailure: { tag: '0000_raw', statement, statementCount: statement, code: '42601' },
+    });
+    const snapshot = await readPostgresMigrationState({ connectionString: connectionString!, schema });
+    expect(snapshot.rows).toEqual([]);
+  });
+
+  it('matches upstream success for empty and ASCII-whitespace chunks', async () => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_whitespace' }],
+      { '0000_whitespace.sql': '--> statement-breakpoint \tselect 1;\n--> statement-breakpoint\n \t\n--> statement-breakpoint' },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    await migrate(drizzle(client), { migrationsFolder: dir, migrationsSchema: schema });
+    const upstream = await readPostgresMigrationState({ connectionString: connectionString!, schema });
+    await resetTarget(client);
+
+    const result = await replayMigrations({
+      connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspection.migrations,
+    });
+    expect(result).toMatchObject({ applied: 1 });
+    expect(result.firstFailure).toBeUndefined();
+    const replay = await readPostgresMigrationState({ connectionString: connectionString!, schema });
+    expect(replay.rows).toEqual(upstream.rows);
   });
 
   it('replays a healthy multi-migration history and records Drizzle bookkeeping rows', async () => {
