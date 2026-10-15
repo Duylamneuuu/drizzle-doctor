@@ -91,3 +91,16 @@ of these:
 ## Security changes
 
 Any change that adds write queries, telemetry, remote execution, automatic repair, or required hosted services changes this threat model and must update this document in the same PR.
+
+### Row-level security and complete history
+
+Both PostgreSQL adapters explicitly set `row_security = off` on their own
+connection before inspecting migration history. PostgreSQL then raises an
+operational error if row-level security would filter a query, rather than
+returning a partial or empty history. This setting does **not** bypass RLS:
+roles that cannot see complete history must use an appropriately authorized
+inspection role. In particular, replay must not execute SQL merely because
+RLS hides existing migration rows. Owners not subject to forced RLS and roles
+with legitimate RLS bypass privileges continue to work normally.
+
+Reference: [PostgreSQL 16 `row_security`](https://www.postgresql.org/docs/16/runtime-config-client.html#GUC-ROW-SECURITY).

@@ -29,6 +29,10 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
   await client.connect();
 
   try {
+    // Fail rather than accept an incomplete history when RLS would filter
+    // rows. This does not bypass policies or grant any additional access.
+    await client.query('set row_security = off');
+
     const existence = await client.query<{ exists: boolean }>(
       `select exists (
         select 1

@@ -82,6 +82,10 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
   await client.connect();
 
   try {
+    // Fail rather than accept an incomplete history when RLS would filter
+    // rows. This does not bypass policies or grant any additional access.
+    await client.query('set row_security = off');
+
     const schemaIdent = quoteIdentifier(schema);
     const tableIdent = quoteIdentifier(table);
 

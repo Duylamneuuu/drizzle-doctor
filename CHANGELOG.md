@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Refuse PostgreSQL status/replay inspections when row-level security would
+  filter migration history. Status no longer reports hidden rows as absent,
+  and replay refuses before setup or migration SQL instead of treating a
+  filtered history as an empty target. This does not bypass RLS policies.
+
 All notable changes to this project will be documented here.
 
 The project intends to follow Semantic Versioning once packages are published.
