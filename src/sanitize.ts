@@ -22,8 +22,8 @@ function replaceAll(input: string, needle: string, replacement: string): string 
  *   percent-encoded password forms)
  * - the bare password value (guarded against trivial single/two-character
  *   passwords to avoid mangling unrelated text)
- * - `password=` / `pass=` fragments (keyword/value connection strings, query
- *   strings, log quotes)
+ * - `password=` / `pass=` fragments, including quoted/escaped values
+ *   (keyword/value connection strings, query strings, log quotes)
  *
  * @param message the raw error message to sanitize
  * @param connectionString the connection string whose credentials must not leak
@@ -56,9 +56,14 @@ export function redactConnectionString(message: string, connectionString?: strin
     // `password=` pass below covers partial fragments.
   }
 
-  // Generic fallback for `password=<value>` / `pass=<value>` fragments where
-  // the value runs until whitespace, `&`, or `;`.
-  redacted = redacted.replace(/\b(password|pass)=([^&\s;]*)/gi, (_match, key: string) => `${key}=${REDACTED}`);
+  // Generic fallback for partial keyword/value or query-string fragments.
+  // Quoted values may contain whitespace/separators; backslashes escape the
+  // next character. Also consume unterminated quotes through the end of a
+  // diagnostic rather than leaking the remainder of a truncated password.
+  redacted = redacted.replace(
+    /\b(password|pass)\s*=\s*(?:'(?:\\[\s\S]|[^'\\])*(?:'|\\?$)|"(?:\\[\s\S]|[^"\\])*(?:"|\\?$)|(?:\\[\s\S]|[^&\s;\\])*\\?)/gi,
+    (_match, key: string) => `${key}=${REDACTED}`,
+  );
 
   return redacted;
 }
