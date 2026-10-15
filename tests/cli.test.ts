@@ -76,6 +76,31 @@ describe('cli exit behavior', () => {
     expect(stdout).toContain('Result: PASS');
   });
 
+  it.each(['repo', 'status', 'replay'])(
+    '%s rejects fractional timestamps before database setup or execution',
+    async (command) => {
+      const dir = await repoFixture(
+        [{ idx: 0, when: 1.5, tag: '0000_fractional', breakpoints: true }],
+        { '0000_fractional.sql': 'select 1;' },
+      );
+      // No database URL or replay confirmation is supplied: repository
+      // validation must stop the command before it reaches either guard.
+      const { code, stdout, stderr } = await run(
+        [command, '--migrations', dir, '--json'],
+        { ...process.env, DATABASE_URL: '' },
+      );
+
+      expect(code).toBe(1);
+      expect(stderr).toBe('');
+      const report = JSON.parse(stdout);
+      expect(report.ok).toBe(false);
+      expect(report.command).toBe(command);
+      expect(report.findings).toContainEqual(expect.objectContaining({
+        code: 'JOURNAL_ENTRY_INVALID', severity: 'error',
+      }));
+    },
+  );
+
   it('repository with a missing journal exits 1 with the finding', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'drizzle-doctor-'));
     tempDirs.push(root);

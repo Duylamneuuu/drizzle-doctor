@@ -6,6 +6,13 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject fractional and unsafe journal timestamps with `JOURNAL_ENTRY_INVALID`
+  before database inspection or replay, instead of reporting a healthy
+  repository that PostgreSQL cannot store or the analyzer cannot compare
+  reliably. Nonnegative safe integer timestamps remain accepted.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

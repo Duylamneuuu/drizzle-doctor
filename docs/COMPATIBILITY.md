@@ -29,6 +29,16 @@ tool models Drizzle migration semantics that can change upstream.
 - Extra journal fields (`version`, `dialect`, ...) are ignored by Drizzle.
   `drizzle-doctor` follows suit.
 
+`drizzle-doctor` requires `when` to be a nonnegative JavaScript safe integer.
+This is deliberate fail-fast validation: Drizzle passes `entry.when` through
+as `folderMillis` and inserts it into a PostgreSQL `bigint` column. Fractions
+cannot be stored there, and integers outside JavaScript's safe range cannot
+be compared reliably by this tool (the PostgreSQL reader enforces the same
+safe-integer boundary). Invalid values emit `JOURNAL_ENTRY_INVALID` before
+`status` connects or `replay` executes SQL. Rechecked against the current
+npm stable `drizzle-orm@0.45.4` on 2026-10-15, in `migrator.js` and
+`pg-core/dialect.js`; upstream itself does not validate this field.
+
 ### Hashing
 
 - The SQL file is read as text (`readFileSync(...).toString()`) and hashed as
