@@ -15,7 +15,7 @@ import path from 'node:path';
 import { Client } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { readPostgresMigrationState } from '../src/postgres.js';
+import { quoteIdentifier, readPostgresMigrationState } from '../src/postgres.js';
 import { replayMigrations } from '../src/replay.js';
 import { inspectMigrationRepository } from '../src/repository.js';
 
@@ -330,5 +330,70 @@ suite('replayMigrations', () => {
     expect(result.firstFailure).toBeUndefined();
     // Sanitization invariant: failure messages never carry the credential material.
     expect(JSON.stringify(result)).not.toContain(connectionString);
+  });
+
+  it.each([false, true])('fails before executing SQL when migration metadata is hidden (populated: %s)', async (populated) => {
+    const role = 'drizzle_doctor_replay_restricted';
+    await client.query(`create role ${role}`);
+    try {
+      const database = await client.query<{ name: string }>('select current_database() as name');
+      await client.query(`grant create on database ${quoteIdentifier(database.rows[0]!.name)} to ${role}`);
+      await client.query(`grant usage, create on schema "${schema}" to ${role}`);
+      await client.query(`create table ${q('__drizzle_migrations')} (id serial primary key, hash text not null, created_at bigint)`);
+      if (populated) {
+        await client.query(`insert into ${q('__drizzle_migrations')} (hash, created_at) values ('existing', 1000)`);
+      }
+      await client.query(`create sequence ${q('replay_probe')}`);
+      await client.query(`grant usage on sequence ${q('replay_probe')} to ${role}`);
+      const { dir } = await migration(
+        [{ idx: 0, when: 2000, tag: '0000_probe' }],
+        // Sequence changes survive rollback: detect execution even if the
+        // bookkeeping INSERT later fails and rolls back the transaction.
+        { '0000_probe.sql': `select nextval('${q('replay_probe')}');` },
+      );
+      const inspection = await inspectMigrationRepository(dir);
+      const restrictedUrl = new URL(connectionString!);
+      const existingOptions = restrictedUrl.searchParams.get('options') ?? '';
+      restrictedUrl.searchParams.set('options', `${existingOptions} -c role=${role}`.trim());
+      const restricted = new Client({ connectionString: restrictedUrl.toString() });
+      await restricted.connect();
+      try {
+        const visible = await restricted.query(
+          'select 1 from information_schema.tables where table_schema = $1 and table_name = $2',
+          [schema, '__drizzle_migrations'],
+        );
+        expect(visible.rows).toEqual([]);
+      } finally {
+        await restricted.end();
+      }
+
+      await expect(replayMigrations({
+        connectionString: restrictedUrl.toString(),
+        schema,
+        table: '__drizzle_migrations',
+        migrations: inspection.migrations,
+      })).rejects.toMatchObject({ code: '42501' });
+
+      const probe = await client.query(`select is_called from ${q('replay_probe')}`);
+      expect(probe.rows).toEqual([{ is_called: false }]);
+      const count = await client.query(`select count(*)::int as n from ${q('__drizzle_migrations')}`);
+      expect(count.rows).toEqual([{ n: populated ? 1 : 0 }]);
+
+      if (populated) {
+        await client.query(`grant select on ${q('__drizzle_migrations')} to ${role}`);
+        const blocked = await replayMigrations({
+          connectionString: restrictedUrl.toString(),
+          schema,
+          table: '__drizzle_migrations',
+          migrations: inspection.migrations,
+        });
+        expect(blocked).toMatchObject({ applied: 0, blocked: 'TARGET_NOT_EMPTY', blockedRowCount: 1 });
+        const stillUntouched = await client.query(`select is_called from ${q('replay_probe')}`);
+        expect(stillUntouched.rows).toEqual([{ is_called: false }]);
+      }
+    } finally {
+      await client.query(`drop owned by ${role}`);
+      await client.query(`drop role ${role}`);
+    }
   });
 });

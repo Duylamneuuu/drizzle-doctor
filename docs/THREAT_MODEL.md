@@ -81,6 +81,11 @@ of these:
 - clear destructive warning/CLI semantics: the command is visibly distinct
   from `repo`/`status`, and the target must have an empty Drizzle migration
   table or the run is refused
+- replay discovers existing metadata through PostgreSQL catalogs, including
+  tables hidden from `information_schema` by missing privileges. If the table
+  cannot be read, replay fails before setup DDL or migration SQL; an unreadable
+  history is never treated as a fresh target. Rollback alone is not a safety
+  guard because migration SQL may have nontransactional effects (e.g. sequences)
 - credentials are not logged: connection failures and migration errors are
   sanitized before they reach stderr or the JSON report (invariant D11)
 - failing migration/statement is reported without dumping sensitive data

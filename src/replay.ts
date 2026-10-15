@@ -85,11 +85,15 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
     const schemaIdent = quoteIdentifier(schema);
     const tableIdent = quoteIdentifier(table);
 
+    // information_schema.tables hides relations without table privileges.
+    // Such a table is not a clean target: the count must fail before any
+    // setup DDL or migration SQL can run, even if its effects survive rollback.
     const existing = await client.query<{ exists: boolean }>(
       `select exists (
         select 1
-        from information_schema.tables
-        where table_schema = $1 and table_name = $2
+        from pg_catalog.pg_class as c
+        join pg_catalog.pg_namespace as n on n.oid = c.relnamespace
+        where n.nspname = $1 and c.relname = $2
       ) as exists`,
       [schema, table],
     );
