@@ -6,6 +6,13 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Documentation
+
+- Clarify that explicit transaction-control SQL can defeat rollback in both
+  replay and upstream Drizzle, leaving changes without a migration-history
+  row. Add PostgreSQL integration coverage against both runners; reset the
+  disposable target before retrying a failed replay.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

@@ -200,7 +200,10 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the high-level roadmap.
   SQL correctness. A PASS is not a full database health guarantee.
 - `replay` must use a disposable PostgreSQL database and deliberately commits
   per migration for diagnostics; upstream Drizzle wraps the whole batch in one
-  transaction. See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+  transaction. Neither runner can guarantee rollback if migration SQL ends
+  that transaction itself (for example, with `COMMIT`). A failed migration
+  can leave changes without a migration-history row; reset the disposable
+  target before retrying. See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
 - The GitHub Action exposes read-only `repo`/`status` modes only. npm remains
   unpublished, and the programmatic library export is still pre-release.
 
