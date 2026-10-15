@@ -86,7 +86,9 @@ of these:
 - overlapping replay invocations coordinate through a session advisory lock
   before inspecting/creating the migration table. Contention fails before
   mutation; connection closure releases the lock on success or failure. This
-  does not exclude external writers, so the target must still be isolated.
+  does not exclude external writers or migration SQL that explicitly releases
+  session advisory locks, so the target must still be isolated. It is not a
+  security boundary against malicious migration SQL.
 - failing migration/statement is reported without dumping sensitive data
   unnecessarily (tag, breakpoint-chunk index, SQLSTATE, sanitized message)
 - test suite includes a guard against accidental use of a production-style

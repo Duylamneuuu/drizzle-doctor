@@ -141,6 +141,10 @@ same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`)
    `drizzle-doctor` replays only, not upstream migrators or external writers.
    Identifier truncation/quoting is reflected in the key; hash collisions can
    conservatively refuse an unrelated target, never allow duplicate replay.
+   This is cooperative coordination, not an isolation/security boundary:
+   migration SQL that explicitly releases session advisory locks (for example,
+   `pg_advisory_unlock_all()`) can bypass it. Such session-control SQL must
+   not be used when relying on replay exclusion.
 
 ### Replay finding mapping
 
