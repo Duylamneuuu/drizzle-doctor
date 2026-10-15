@@ -6,6 +6,11 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- redact complete quoted and backslash-escaped password fragments in database
+  diagnostics, including whitespace and truncated quoted values
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

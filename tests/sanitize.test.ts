@@ -50,6 +50,26 @@ describe('redactConnectionString', () => {
     expect(redactConnectionString(query, URL)).toBe('?user=doctor&password=[REDACTED]&sslmode=require');
   });
 
+  it.each([
+    ["password='first second' host=db", 'password=[REDACTED] host=db'],
+    ['pass="first second"; retry=no', 'pass=[REDACTED]; retry=no'],
+    ["PASSWORD = 'first second' host=db", 'PASSWORD=[REDACTED] host=db'],
+    [String.raw`password='first\' second\\ third' host=db`, 'password=[REDACTED] host=db'],
+    [String.raw`password=first\ second host=db`, 'password=[REDACTED] host=db'],
+    ["password='first & second; third' host=db", 'password=[REDACTED] host=db'],
+    ["password='first second", 'password=[REDACTED]'],
+    ['pass="first second' + '\\', 'pass=[REDACTED]'],
+    ["password='' host=db", 'password=[REDACTED] host=db'],
+    ['?password=first&sslmode=require', '?password=[REDACTED]&sslmode=require'],
+    ["password='first second' pass=third", 'password=[REDACTED] pass=[REDACTED]'],
+  ])('redacts complete credential fragments: %s', (fragment, expected) => {
+    // The original connection string differs from the partial diagnostic, so
+    // full-string replacement cannot hide an incomplete fragment redaction.
+    expect(redactConnectionString(`authentication failed: ${fragment}`, 'host=db password=example')).toBe(
+      `authentication failed: ${expected}`,
+    );
+  });
+
   it('leaves messages without credential material unchanged', () => {
     const message = 'connect ECONNREFUSED 127.0.0.1:5432, please check the database host';
     expect(redactConnectionString(message, URL)).toBe(message);
