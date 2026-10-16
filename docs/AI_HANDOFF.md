@@ -321,6 +321,17 @@ is now also the watchdog (`docs/AUTOMATION.md`, "Automation watchdog"). Merged
 no migrator or dialect change (`docs/COMPATIBILITY.md`, "Upstream watch
 (2026-10-09)"). Check that the next scheduled runs produce agent output.
 
+Maintenance run 2026-10-16: reproduced a credential-redaction gap for repeated
+URL `password` parameters: `pg-connection-string@2.14.0` uses the last value,
+while the sanitizer inspected only the first. Redact every `password`/`pass`
+query value, including decoded/encoded forms, longest-first alongside bare
+userinfo passwords for overlapping secrets. Regression tests cover the
+diagnostic fragments without connecting to a database. No migration
+semantics, findings, dependencies, or release
+gates change. The pending credential fixes #58/#60/#83 remain separate;
+coordinate sanitizer changes when landing them. Review/land the existing
+security and fail-safe PR backlog before reassessing release readiness (#5).
+
 Do not jump directly to broad adapter support or feature expansion. The active sequence is:
 
 1. M1 — validate v0.1 behavior and fixtures ✅

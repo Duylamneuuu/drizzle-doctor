@@ -40,15 +40,25 @@ export function redactConnectionString(message: string, connectionString?: strin
     if (password && password.length >= 3) {
       redacted = replaceAll(redacted, `${user}:${password}@`, `${user}:[REDACTED]@`);
       redacted = replaceAll(redacted, `${user}:${encodeURIComponent(password)}@`, `${user}:[REDACTED]@`);
-      redacted = replaceAll(redacted, password, REDACTED);
-      redacted = replaceAll(redacted, encodeURIComponent(password), REDACTED);
     }
-    for (const key of ['password', 'pass']) {
-      const value = url.searchParams.get(key);
-      if (value) {
-        redacted = replaceAll(redacted, `${key}=${value}`, `${key}=${REDACTED}`);
-        redacted = replaceAll(redacted, value, REDACTED);
-      }
+    // pg accepts repeated query parameters and uses the last password value.
+    // Cover every supplied value (including encoded diagnostic forms), not
+    // just URLSearchParams.get()'s first result. Replace longer secrets first
+    // so a shared prefix cannot leave the rest of another password exposed.
+    const secrets = new Set(
+      ['password', 'pass'].flatMap((key) => url.searchParams.getAll(key))
+        .filter(Boolean)
+        .flatMap((value) => [value, encodeURIComponent(value)]),
+    );
+    // Include long userinfo passwords in the same pass: replacing a shorter
+    // userinfo secret first could expose a longer query secret's suffix.
+    // Preserve the existing guard against mangling short standalone values.
+    if (password && password.length >= 3) {
+      secrets.add(password);
+      secrets.add(encodeURIComponent(password));
+    }
+    for (const value of [...secrets].sort((a, b) => b.length - a.length)) {
+      redacted = replaceAll(redacted, value, REDACTED);
     }
   } catch {
     // Not URL-parseable (keyword/value form, scheme-less, malformed). The

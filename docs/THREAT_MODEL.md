@@ -43,6 +43,12 @@ Control: core database status adapter uses read queries only. Mutation belongs o
 
 Control: connection strings are accepted through arguments/environment but never copied into structured/text reports. Driver errors are sanitized before display (`src/sanitize.ts`): the connection string, its `user:password@` prefix, percent-encoded password forms, and `password=` fragments are redacted, and the original error is never printed. Tests assert the invariant end-to-end (`tests/sanitize.test.ts`, `tests/cli.test.ts`). Tests and bug templates warn against posting real credentials. Documented guidance prefers `DATABASE_URL` over `--database-url` to keep credentials out of shell history and process listings.
 
+Repeated `password`/`pass` URL query parameters are all treated as secrets,
+not just the first value: the PostgreSQL driver uses the last repeated
+`password` value. Decoded and percent-encoded diagnostic forms are redacted,
+with longer secrets replaced first to avoid exposing overlapping
+suffixes (`tests/sanitize.test.ts`).
+
 ### Malicious SQL in a repository
 
 Current `repo`/`status` modes hash/read SQL; they do not execute it. The
