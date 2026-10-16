@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-10-09.
+Last reviewed: 2026-10-16.
 
 ## 1. Mission
 
@@ -81,6 +81,16 @@ testing has happened. Do not create a moving `@v1` Action tag.
 
 ## 4. Current priority
 
+**Current override — weekly review 2026-10-16:** M2 is not release-ready.
+Review and integrate the existing security/correctness PRs, then validate the
+combined head before reconsidering npm publication. Earlier dated statements
+that only publication remains are historical, not the current acceptance state.
+Keep release decisions in issue #5; do not create a duplicate tracker. M3/M4
+remain delivered, but their pending safety fixes are release blockers. M5
+research may continue without expanding support claims or adding adapters.
+See [the weekly evidence and landing priorities](reviews/2026-10-16.md).
+
+
 The next remaining **maintainer-gated** item is **npm publish (M2.5 / D14)**.
 Do not publish to npm. M4 Action source + GitHub tag `v0.1.0-alpha.2` exist;
 consumers pin `@v0.1.0-alpha.2`. A moving `@v1` tag must not be created
@@ -95,8 +105,9 @@ M2 progress as of 2026-09-04 (see `docs/MILESTONES.md` for detailed status):
 - M2.4 delivered: machine-readable output contract defined in `docs/OUTPUT_CONTRACT.md` (exit codes, finding fields, command-level JSON shape, stable vs provisional fields, evolution policy); reports now carry `formatVersion: 1`; shape pinned by `tests/output-contract.test.ts` (P0.8/Q2)
 - M2.5 prepared (2026-09-04; hardening release updated 2026-09-16): name availability checked (`drizzle-doctor` free on npm), current version `0.1.0-alpha.2` (package.json + lockfile), `CHANGELOG.md` prerelease sections written, `npm pack --dry-run` clean (43 files: dist/README/LICENSE/package.json), tarball smoke verified by CI `package-smoke` and local CLI runs, provenance (`npm publish --provenance` via GitHub OIDC) recommended but not decided. The npm publish itself remains maintainer-gated (D14/AGENTS.md); no npm publication was performed.
 
-All M2 pre-publication acceptance criteria hold; M2 stays 🚧 only for the
-maintainer-authorized publish step.
+The 2026-09-04 preparation assessment is historical. As of 2026-10-16,
+M2 stays 🚧 for the pending safety-fix landing/integrated verification,
+unresolved release decisions in #5, and maintainer-authorized publication.
 
 Open Dependabot PRs as of 2026-09-04: @types/node 26.4.0 merged (#8). commander 15 still blocked (declares `engines: node >=22.12.0`; do not merge while Node 20 is supported, D9 — commander 14 receives security updates until May 2027, so there is no security pressure). typescript 7.0.2 reviewed as compatible (engines `node >=16.20.0`, CI green on Node 20/22, devDependency only) but left open for the maintainer's toolchain-major decision. Both status notes are recorded on the PRs themselves (#7, #10).
 
