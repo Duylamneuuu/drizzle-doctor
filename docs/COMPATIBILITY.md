@@ -41,7 +41,7 @@ tool models Drizzle migration semantics that can change upstream.
 
 - Drizzle splits migration SQL on the literal `--> statement-breakpoint`
   separator before execution. Breakpoints affect execution (used by the
-  future replay feature), not status comparison; `repo`/`status` hash the
+  replay feature), not status comparison; `repo`/`status` hash the
   unsplit file, matching Drizzle's own hash input.
 
 ### PostgreSQL migration table
@@ -248,3 +248,29 @@ Compared the npm tarballs of `drizzle-orm@0.45.2` (previous pin), `0.45.3` and
 - The `package.json` pin, the lockfile and `tests/upstream-semantics.test.ts`
   moved to `0.45.4`; the equivalence tests pass unchanged.
 - Not re-checked in this pass: `drizzle-kit` and the v1 release-candidate line.
+
+## Upstream watch (2026-10-16)
+
+Registry stable tags are `drizzle-orm@0.45.4` and `drizzle-kit@0.31.11`.
+The npm ORM tarball's `migrator.js` and `pg-core/dialect.js` compare
+byte-identical to the pinned installed 0.45.4 files. Reinspection confirms the
+journal, raw SQL hash, breakpoint splitting, PostgreSQL migration table,
+`created_at = folderMillis`, and strict high-watermark semantics documented
+above. No stable model change is required.
+
+Comparing Kit 0.31.10 and 0.31.11: `api.js` and `utils.js` are byte-identical;
+the migration-relevant CLI delta adds a `drizzle-kit check` warning for
+non-increasing journal timestamps, explaining that the earlier applied
+migration can cause a later entry to be skipped. This is a diagnostic change,
+not a new journal format or ORM apply algorithm. It corroborates, rather than
+weakens, `WOULD_BE_SKIPPED_BY_DRIZZLE`. See the versioned
+[0.31.10 CLI](https://unpkg.com/drizzle-kit@0.31.10/bin.cjs) and
+[0.31.11 CLI](https://unpkg.com/drizzle-kit@0.31.11/bin.cjs).
+
+The registry still separates `rc` (`1.0.0-rc.4`) and `rc5`
+(`1.0.0-rc.5-5935859`) from stable. A bounded reinspection of RC5's reader and
+selection helper reconfirms the legacy-journal rejection and migration-name
+selection described above; it is not full v1 compatibility proof. Kit 0.31.11
+generated-history tests remain pending in PR #57; no tested-support range is
+expanded by this source review. See the [weekly review](reviews/2026-10-16.md)
+for scope, sources, and release blockers.

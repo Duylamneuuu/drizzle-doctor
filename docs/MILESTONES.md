@@ -185,10 +185,14 @@ Before prerelease, document:
 
 Prefer additive future changes ✅ (evolution policy).
 
-#### M2.5 npm prerelease preparation ✅ (fully prepared 2026-09-04)
+#### M2.5 npm prerelease preparation 🚧 (release revalidation required 2026-10-16)
 
 Prepare, but do not publish without explicit maintainer authorization
-(D14, `AGENTS.md` stop conditions). All preparation items are done:
+(D14, `AGENTS.md` stop conditions). The following records the historical
+preparation evidence, not a current release authorization. The
+[2026-10-16 review](reviews/2026-10-16.md) found pending security/correctness
+fixes and unresolved decisions in issue #5. Revalidate the integrated head
+before completing this gate:
 
 - package name availability/ownership check ✅ — `drizzle-doctor` is not
   taken on the npm registry (checked 2026-09-04); no ownership conflict
@@ -219,7 +223,13 @@ Prepare, but do not publish without explicit maintainer authorization
 - CI green ✅
 - no release is published automatically ✅ (publication is maintainer-gated)
 
-All pre-publication criteria hold. GitHub Pre-release tag `v0.1.0-alpha.2`
+**Current gate assessment (2026-10-16): not complete.** Build/package checks
+pass on main, but pending security/correctness fixes, combined-head validation,
+and unresolved issue #5 decisions block release readiness. Do not close M2 or
+its GitHub milestone based on individually green PRs. Historical M3/M4 delivery
+is unchanged; M5 remains evidence-constrained, not newly completed.
+
+GitHub Pre-release tag `v0.1.0-alpha.2`
 points to verified commit `c6a6211`; Action consumers should pin that immutable
 tag. **npm publish has not been performed** and remains maintainer-gated (D14).
 A moving major Action tag (`@v1`) must not be created while still pre-alpha.
