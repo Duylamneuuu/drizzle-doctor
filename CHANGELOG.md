@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- redact every repeated `password`/`pass` URL query value from driver errors,
+  including decoded and percent-encoded forms; redact overlapping
+  secrets longest-first so credential suffixes are not left in diagnostics
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
