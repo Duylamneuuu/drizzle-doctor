@@ -55,6 +55,26 @@ describe('redactConnectionString', () => {
     expect(redactConnectionString(message, URL)).toBe(message);
   });
 
+  it.each(['password', 'pass'])('redacts every repeated %s query value, decoded and encoded', (key) => {
+    const first = 'first-query-secret';
+    const last = 'last query:secret';
+    const encoded = encodeURIComponent(last);
+    const connectionString = `postgres://doctor@db.example.com/app?${key}=${first}&${key}=${encoded}`;
+    // pg-connection-string uses the last repeated password, not the first.
+    // A driver diagnostic need not retain the query key or the entire URL.
+    const message = `credentials "${first}", "${last}", "${encoded}" rejected`;
+    expect(redactConnectionString(message, connectionString)).toBe(
+      'credentials "[REDACTED]", "[REDACTED]", "[REDACTED]" rejected',
+    );
+  });
+
+  it('redacts overlapping query secrets completely, regardless of key or parameter order', () => {
+    const connectionString = 'postgres://doctor@db.example.com/app?password=shared-secret&pass=shared-secret-suffix&password=shared-secret-longer';
+    expect(redactConnectionString('shared-secret-suffix / shared-secret-longer', connectionString)).toBe(
+      '[REDACTED] / [REDACTED]',
+    );
+  });
+
   it('handles a password-free connection string', () => {
     const message = 'connect ECONNREFUSED db.example.com:5432';
     expect(redactConnectionString(message, 'postgres://doctor@db.example.com:5432/app')).toBe(message);

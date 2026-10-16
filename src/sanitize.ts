@@ -43,12 +43,17 @@ export function redactConnectionString(message: string, connectionString?: strin
       redacted = replaceAll(redacted, password, REDACTED);
       redacted = replaceAll(redacted, encodeURIComponent(password), REDACTED);
     }
-    for (const key of ['password', 'pass']) {
-      const value = url.searchParams.get(key);
-      if (value) {
-        redacted = replaceAll(redacted, `${key}=${value}`, `${key}=${REDACTED}`);
-        redacted = replaceAll(redacted, value, REDACTED);
-      }
+    // pg accepts repeated query parameters and uses the last password value.
+    // Cover every supplied value (including encoded diagnostic forms), not
+    // just URLSearchParams.get()'s first result. Replace longer secrets first
+    // so a shared prefix cannot leave the rest of another password exposed.
+    const querySecrets = new Set(
+      ['password', 'pass'].flatMap((key) => url.searchParams.getAll(key))
+        .filter(Boolean)
+        .flatMap((value) => [value, encodeURIComponent(value)]),
+    );
+    for (const value of [...querySecrets].sort((a, b) => b.length - a.length)) {
+      redacted = replaceAll(redacted, value, REDACTED);
     }
   } catch {
     // Not URL-parseable (keyword/value form, scheme-less, malformed). The
