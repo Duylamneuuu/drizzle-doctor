@@ -2,7 +2,27 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-10-09.
+Last reviewed: 2026-10-16.
+
+Maintenance security update (2026-10-13): refreshed only the transitive
+`source-map-js` lockfile entry from 1.2.1 to 1.2.2 to address
+[GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)
+(indexed source-map event-loop denial of service). This dependency is dev-only
+through Vitest/Vite/PostCSS; runtime dependencies, Node 20 support, Drizzle
+semantics, and report contracts are unchanged. Full `npm audit` reports zero
+vulnerabilities after the update. npm publication remains maintainer-gated.
+
+Landing review (2026-10-16, PR #56): main still reports the high-severity
+advisory; this branch's clean install, typecheck, build, package dry run, and
+full audit pass. A clean full-suite rerun passed 114 tests (11 PostgreSQL
+integration tests skipped locally; the PR's PostgreSQL CI is green). The
+initial run hit the existing 5-second scale-test timeout, tracked separately
+in PR #67; no assertions or timeouts were changed here. Independent dependency
+review confirmed the dev-only path and unchanged Node 20 support. Prioritize
+landing this existing fix and reviewing the pending credential-redaction
+fixes (#58, #60, #83, #88), rather than opening duplicate security PRs. M5
+compatibility hardening remains the active milestone after security work;
+npm publication is still blocked on maintainer approval in issue #5.
 
 ## 1. Mission
 
