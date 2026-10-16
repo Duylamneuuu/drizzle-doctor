@@ -6,6 +6,11 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- keep unsupported GitHub Action mode values out of diagnostics so untrusted
+  inputs cannot inject workflow commands or expose accidentally supplied secrets
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

@@ -75,7 +75,9 @@ runs:
         set -u +e -o pipefail
         mode="$MODE_INPUT"
         if [ "$mode" != 'repo' ] && [ "$mode" != 'status' ]; then
-          echo "drizzle-doctor: unsupported mode '$mode' (expected 'repo' or 'status')" >&2
+          # Do not echo untrusted input: newlines and legacy runner-command
+          # syntax can turn a diagnostic into GitHub workflow commands.
+          echo "drizzle-doctor: unsupported mode (expected 'repo' or 'status')" >&2
           echo 'exit=2' >> "$GITHUB_OUTPUT"
           exit 0
         fi

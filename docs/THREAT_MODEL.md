@@ -65,6 +65,10 @@ Composite Action inputs are mapped through environment variables and quoted as
 Bash array values. Caller-supplied paths/schema/table names are never
 interpolated into shell source.
 
+Unsupported Action modes are rejected with a fixed diagnostic that does not
+echo the input. This keeps multiline/legacy workflow-command syntax and
+accidentally supplied secrets out of validation logs, before the audit runs.
+
 ### False reassurance
 
 A PASS means only that implemented checks found no error-level findings. It is not proof that application schema or migration SQL is logically correct. Documentation and output should avoid presenting the tool as a full database verifier.
