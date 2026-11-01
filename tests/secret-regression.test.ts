@@ -108,34 +108,26 @@ describe('secret-pattern regression tests (P1.14, D11)', () => {
     expectNoLeak(stdout, stderr);
   });
 
-  it('status via DATABASE_URL env failure never echoes the credential (text and JSON)', async () => {
+  it.each(['text', 'JSON'])('status via DATABASE_URL env failure never echoes the credential (%s)', async (mode) => {
     const dir = await repoFixture();
     const env = { ...process.env, DATABASE_URL: DUMMY_ENV_URL };
-    const text = await run(['status', '--migrations', dir], env);
-    expect(text.code).toBe(2);
-    expectNoLeak(text.stdout, text.stderr);
-    const json = await run(['status', '--migrations', dir, '--json'], env);
-    expect(json.code).toBe(2);
-    expect(json.stdout).toBe('');
-    expectNoLeak(json.stdout, json.stderr);
+    const args = ['status', '--migrations', dir];
+    if (mode === 'JSON') args.push('--json');
+    const { code, stdout, stderr } = await run(args, env);
+    expect(code).toBe(2);
+    if (mode === 'JSON') expect(stdout).toBe('');
+    expectNoLeak(stdout, stderr);
   });
 
-  it('replay --database-url failure never echoes the credential (text and JSON)', async () => {
+  it.each(['text', 'JSON'])('replay --database-url failure never echoes the credential (%s)', async (mode) => {
     const dir = await repoFixture();
     const env = envWithoutDatabaseUrl();
-    const text = await run(
-      ['replay', '--migrations', dir, '--database-url', DUMMY_URL, '--confirm-destructive'],
-      env,
-    );
-    expect(text.code).toBe(2);
-    expectNoLeak(text.stdout, text.stderr);
-    const json = await run(
-      ['replay', '--migrations', dir, '--database-url', DUMMY_URL, '--confirm-destructive', '--json'],
-      env,
-    );
-    expect(json.code).toBe(2);
-    expect(json.stdout).toBe('');
-    expectNoLeak(json.stdout, json.stderr);
+    const args = ['replay', '--migrations', dir, '--database-url', DUMMY_URL, '--confirm-destructive'];
+    if (mode === 'JSON') args.push('--json');
+    const { code, stdout, stderr } = await run(args, env);
+    expect(code).toBe(2);
+    if (mode === 'JSON') expect(stdout).toBe('');
+    expectNoLeak(stdout, stderr);
   });
 
   it('successful repo --json output contains no credential material from the environment', async () => {
