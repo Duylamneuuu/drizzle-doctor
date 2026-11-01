@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- redact one- and two-character passwords in partial connection URL userinfo,
+  including percent-encoded and decoded forms, without mangling unrelated
+  short words in driver diagnostics
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

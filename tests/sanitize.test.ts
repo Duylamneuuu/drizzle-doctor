@@ -70,6 +70,26 @@ describe('redactConnectionString', () => {
     expect(redacted).toContain('backend labeled "ab"');
   });
 
+  it.each([
+    ['doctor', 'x', 'doctor', 'x'],
+    ['doctor', 'ab', 'doctor', 'ab'],
+    ['', 'ab', '', 'ab'],
+    ['doc%40tor', 'ab', 'doc%40tor', 'ab'],
+    ['doc%40tor', 'ab', 'doc@tor', 'ab'],
+    ['doctor', '%2a', 'doctor', '%2a'],
+    ['doctor', '%2a', 'doctor', '%2A'],
+    ['doctor', '%2a', 'doctor', '*'],
+    ['doc%40tor', '%C3%A9', 'doc%40tor', 'é'],
+  ])('redacts short userinfo credentials (%s:%s) rendered as %s:%s', (user, password, renderedUser, renderedPassword) => {
+    const connectionString = `postgres://${user}:${password}@db.example.com/app?sslmode=require`;
+    // A driver may omit the query/path or decode userinfo when reporting an
+    // error, so replacing only the full connection string is insufficient.
+    const message = `login failed at postgres://${renderedUser}:${renderedPassword}@mirror; backend labeled "ab"`;
+    expect(redactConnectionString(message, connectionString)).toBe(
+      `login failed at postgres://${renderedUser}:[REDACTED]@mirror; backend labeled "ab"`,
+    );
+  });
+
   it('is a no-op without a connection string', () => {
     const message = 'some unrelated error';
     expect(redactConnectionString(message)).toBe(message);
