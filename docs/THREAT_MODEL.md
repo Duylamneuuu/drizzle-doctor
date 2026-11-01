@@ -69,6 +69,9 @@ Finding messages can contain untrusted migration tags. Plain Action logs escape
 CR/LF and legacy `##[` command prefixes so repository input cannot forge GitHub
 workflow commands. Summary cells also neutralize legacy command prefixes in the
 stdout fallback. Intentional error annotations use workflow-command data escaping.
+`tests/action-execution.test.ts` exercises the actual embedded Bash/Node summary
+step with a malicious journal rendered by the built CLI, covering both summary
+file and stdout-fallback paths while preserving intentional error annotations.
 
 ### False reassurance
 
