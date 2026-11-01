@@ -37,9 +37,23 @@ export function redactConnectionString(message: string, connectionString?: strin
     const url = new URL(connectionString);
     const user = url.username ? decodeURIComponent(url.username) : '';
     const password = url.password ? decodeURIComponent(url.password) : '';
+    if (password) {
+      // Userinfo is identifiable even for short passwords. Cover raw and
+      // decoded diagnostic forms without replacing ordinary short words.
+      const passwordForms = new Set([
+        url.password,
+        url.password.replace(/%[\da-f]{2}/gi, (escape) => escape.toUpperCase()),
+        url.password.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
+        password,
+        encodeURIComponent(password),
+      ]);
+      for (const username of new Set([url.username, user])) {
+        for (const value of passwordForms) {
+          redacted = replaceAll(redacted, `${username}:${value}@`, `${username}:${REDACTED}@`);
+        }
+      }
+    }
     if (password && password.length >= 3) {
-      redacted = replaceAll(redacted, `${user}:${password}@`, `${user}:[REDACTED]@`);
-      redacted = replaceAll(redacted, `${user}:${encodeURIComponent(password)}@`, `${user}:[REDACTED]@`);
       redacted = replaceAll(redacted, password, REDACTED);
       redacted = replaceAll(redacted, encodeURIComponent(password), REDACTED);
     }
