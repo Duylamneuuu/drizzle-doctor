@@ -6,6 +6,13 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Security
+
+- update development-only Vitest to 4.1.12 and Vite to 8.2.4 to address
+  mock-registration code injection, mock redirect traversal, and development
+  server/editor endpoint advisories; retain the existing major versions and
+  Node 20 support, with no runtime dependency or migration behavior changes
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
