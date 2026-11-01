@@ -6,6 +6,12 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- prevent migration tags in GitHub Action finding logs from injecting workflow
+  commands via newlines or legacy command syntax; preserve intentional error
+  annotations and protect the summary stdout fallback
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

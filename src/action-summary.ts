@@ -32,8 +32,18 @@ export function actionAnnotationFor(finding: Finding): string {
   return `::error title=drizzle-doctor [${finding.code}]::${escapeActionAnnotation(`${finding.code}: ${finding.message}`)}`;
 }
 
+/** Keep untrusted text on one log line, without legacy workflow commands. */
+export function actionLogFor(finding: Finding): string {
+  const message = finding.message
+    .replaceAll('\r', '\\r')
+    .replaceAll('\n', '\\n')
+    .replaceAll('##[', '##\\[');
+  return `${finding.severity.toUpperCase()} [${finding.code}] ${message}`;
+}
+
 function actionTableCell(message: string): string {
-  return message.replaceAll('|', '\\|').replaceAll('\r', ' ').replaceAll('\n', ' ');
+  // The summary can fall back to stdout when GITHUB_STEP_SUMMARY is absent.
+  return message.replaceAll('##[', '##\\[').replaceAll('|', '\\|').replaceAll('\r', ' ').replaceAll('\n', ' ');
 }
 
 /** Render the markdown job summary for a parsed report. */

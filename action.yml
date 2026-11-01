@@ -123,7 +123,7 @@ runs:
           if (summaryFile) appendFileSync(summaryFile, summary);
           else process.stdout.write(summary);
           for (const finding of report.findings) {
-            process.stdout.write(`${finding.severity.toUpperCase()} [${finding.code}] ${finding.message}\n`);
+            process.stdout.write(`${helpers.actionLogFor(finding)}\n`);
           }
           for (const finding of report.findings
             .filter((f) => f.severity === 'error')
