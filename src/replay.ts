@@ -85,21 +85,32 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
     const schemaIdent = quoteIdentifier(schema);
     const tableIdent = quoteIdentifier(table);
 
-    const existing = await client.query<{ exists: boolean }>(
-      `select exists (
-        select 1
-        from information_schema.tables
-        where table_schema = $1 and table_name = $2
-      ) as exists`,
-      [schema, table],
-    );
-    const tableExists = Boolean(existing.rows[0]?.exists);
     let rowCount = 0;
-    if (tableExists) {
-      const count = await client.query<{ n: string }>(
-        `select count(*)::text as n from ${schemaIdent}.${tableIdent}`,
+    // Keep the RLS guard and cleanliness checks on the same backend even
+    // with transaction pooling, then end inspection before any replay writes.
+    await client.query('begin read only');
+    try {
+      // Fail instead of accepting filtered history; this does not bypass RLS.
+      await client.query('set local row_security = off');
+      const existing = await client.query<{ exists: boolean }>(
+        `select exists (
+          select 1
+          from information_schema.tables
+          where table_schema = $1 and table_name = $2
+        ) as exists`,
+        [schema, table],
       );
-      rowCount = Number(count.rows[0]?.n ?? 0);
+      const tableExists = Boolean(existing.rows[0]?.exists);
+      if (tableExists) {
+        const count = await client.query<{ n: string }>(
+          `select count(*)::text as n from ${schemaIdent}.${tableIdent}`,
+        );
+        rowCount = Number(count.rows[0]?.n ?? 0);
+      }
+      await client.query('commit');
+    } catch (error) {
+      await client.query('rollback').catch(() => undefined);
+      throw error;
     }
     if (rowCount > 0) {
       return {
