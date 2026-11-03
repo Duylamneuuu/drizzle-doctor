@@ -37,6 +37,13 @@ This module owns repository invariants such as:
 
 Thin read-only adapter for PostgreSQL. It knows where the Drizzle migration table lives and returns normalized rows.
 
+Both metadata queries run in a server-enforced `READ ONLY` transaction so that
+functions invoked by views or row-security policies cannot perform ordinary
+database writes during inspection. Catalog discovery distinguishes an absent
+table from an inaccessible one; transaction-local `row_security = off` rejects
+filtered histories rather than bypassing policies. The transaction ends before
+the dedicated connection closes on every query/normalization path.
+
 It does **not** decide whether a state is safe.
 
 ### `src/analyze.ts`
