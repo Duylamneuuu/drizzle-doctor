@@ -13,6 +13,29 @@ function replaceAll(input: string, needle: string, replacement: string): string 
   return input.split(needle).join(replacement);
 }
 
+// A malformed escape in one component must not bypass the others.
+function decodeCredential(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+// Preserve the supplied spelling as well as URL-decoded and normalized forms.
+// Percent escapes are case-insensitive; URLSearchParams loses their raw form.
+function credentialForms(raw: string, decoded: string): string[] {
+  const encoded = encodeURIComponent(decoded);
+  return [
+    raw,
+    raw.replace(/%[\da-f]{2}/gi, (escape) => escape.toUpperCase()),
+    raw.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
+    decoded,
+    encoded,
+    encoded.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
+  ];
+}
+
 /**
  * Removes connection-string credential material from `message`.
  *
@@ -22,33 +45,45 @@ function replaceAll(input: string, needle: string, replacement: string): string 
  *   percent-encoded password forms)
  * - the bare password value (guarded against trivial single/two-character
  *   passwords to avoid mangling unrelated text)
- * - `password=` / `pass=` fragments (keyword/value connection strings, query
- *   strings, log quotes)
+ * - `password=` / `pass=` fragments, including quoted/escaped values
+ *   (keyword/value connection strings, query strings, log quotes)
  *
  * @param message the raw error message to sanitize
  * @param connectionString the connection string whose credentials must not leak
  */
 export function redactConnectionString(message: string, connectionString?: string): string {
-  if (!connectionString || !message) return message;
+  if (!connectionString || !message) return redactPasswordFragments(message);
 
   let redacted = replaceAll(message, connectionString, REDACTED);
 
   try {
     const url = new URL(connectionString);
-    const user = url.username ? decodeURIComponent(url.username) : '';
-    const password = url.password ? decodeURIComponent(url.password) : '';
-    if (password && password.length >= 3) {
-      redacted = replaceAll(redacted, `${user}:${password}@`, `${user}:[REDACTED]@`);
-      redacted = replaceAll(redacted, `${user}:${encodeURIComponent(password)}@`, `${user}:[REDACTED]@`);
-      redacted = replaceAll(redacted, password, REDACTED);
-      redacted = replaceAll(redacted, encodeURIComponent(password), REDACTED);
-    }
-    for (const key of ['password', 'pass']) {
-      const value = url.searchParams.get(key);
-      if (value) {
-        redacted = replaceAll(redacted, `${key}=${value}`, `${key}=${REDACTED}`);
-        redacted = replaceAll(redacted, value, REDACTED);
+    const user = decodeCredential(url.username);
+    const password = decodeCredential(url.password);
+    const passwordForms = new Set(credentialForms(url.password, password));
+    if (password) {
+      // Identifiable userinfo is safe to redact even for a short password.
+      for (const username of new Set([url.username, user])) {
+        for (const value of passwordForms) {
+          redacted = replaceAll(redacted, `${username}:${value}@`, `${username}:${REDACTED}@`);
+        }
       }
+    }
+    // Cover every repeated query value, not just the first. Replace longer
+    // secrets first so overlapping userinfo/query passwords leave no suffix.
+    const secrets = new Set(
+      url.search.slice(1).split('&').flatMap((parameter) => {
+        const [key, value] = [...new URLSearchParams(parameter)][0] ?? [];
+        if ((key !== 'password' && key !== 'pass') || !value) return [];
+        return credentialForms(parameter.slice(parameter.indexOf('=') + 1), value);
+      }),
+    );
+    // Preserve short standalone text to avoid corrupting unrelated diagnostics.
+    if (password && password.length >= 3) {
+      for (const value of passwordForms) secrets.add(value);
+    }
+    for (const value of [...secrets].sort((a, b) => b.length - a.length)) {
+      redacted = replaceAll(redacted, value, REDACTED);
     }
   } catch {
     // Not URL-parseable (keyword/value form, scheme-less, malformed). The
@@ -56,9 +91,16 @@ export function redactConnectionString(message: string, connectionString?: strin
     // `password=` pass below covers partial fragments.
   }
 
-  // Generic fallback for `password=<value>` / `pass=<value>` fragments where
-  // the value runs until whitespace, `&`, or `;`.
-  redacted = redacted.replace(/\b(password|pass)=([^&\s;]*)/gi, (_match, key: string) => `${key}=${REDACTED}`);
+  return redactPasswordFragments(redacted);
+}
 
-  return redacted;
+function redactPasswordFragments(message: string): string {
+  // Generic fallback for partial keyword/value or query-string fragments.
+  // Quoted values may contain whitespace/separators; backslashes escape the
+  // next character. Also consume unterminated quotes through the end of a
+  // diagnostic rather than leaking the remainder of a truncated password.
+  return message.replace(
+    /\b(password|pass)\s*=\s*(?:'(?:\\[\s\S]|[^'\\])*(?:'|\\?$)|"(?:\\[\s\S]|[^"\\])*(?:"|\\?$)|(?:\\[\s\S]|[^&\s;\\])*\\?)/gi,
+    (_match, key: string) => `${key}=${REDACTED}`,
+  );
 }

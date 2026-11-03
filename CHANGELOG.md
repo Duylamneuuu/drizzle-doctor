@@ -6,6 +6,18 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- redact query-string passwords in their original percent-encoded spelling,
+  including lowercase/mixed-case escapes and form-encoded spaces
+
+- sanitize CLI usage errors before Commander writes them, including credentials
+  in malformed options, unexpected arguments, and `DATABASE_URL`
+- redact short userinfo passwords, malformed/encoded credential components,
+  every repeated `password`/`pass` query value, and complete quoted/escaped
+  password fragments (also without a supplied URL); replace overlapping secrets
+  longest-first
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
