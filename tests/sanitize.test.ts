@@ -75,4 +75,105 @@ describe('redactConnectionString', () => {
     expect(redactConnectionString(message)).toBe(message);
     expect(redactConnectionString(message, undefined)).toBe(message);
   });
+
+  it.each(['a', 'ab', '@'])('redacts short password %s in userinfo without altering unrelated text', (password) => {
+    const encoded = encodeURIComponent(password);
+    const connection = `postgres://doctor:${encoded}@db.example.com/app`;
+    for (const value of new Set([password, encoded])) {
+      const message = `login doctor:${value}@mirror rejected; backend labeled "${password}"`;
+      expect(redactConnectionString(message, connection)).toBe(
+        `login doctor:[REDACTED]@mirror rejected; backend labeled "${password}"`,
+      );
+    }
+  });
+
+  it.each([
+    ['doc%ZZ', 'long-secret'],
+    ['doctor', 'bad%ZZ'],
+    ['doctor', '%FF'],
+  ])('redacts userinfo with malformed encoding (%s, %s)', (user, password) => {
+    const connection = `postgres://${user}:${password}@db.example.com/app`;
+    expect(redactConnectionString(`login ${user}:${password}@mirror rejected`, connection)).toBe(
+      `login ${user}:[REDACTED]@mirror rejected`,
+    );
+  });
+
+  it('redacts encoded and decoded usernames independently of the password encoding', () => {
+    const connection = 'postgres://doc%40team:p%40ss@db.example.com/app';
+    for (const user of ['doc%40team', 'doc@team']) {
+      for (const password of ['p%40ss', 'p@ss']) {
+        expect(redactConnectionString(`login ${user}:${password}@mirror rejected`, connection)).toBe(
+          `login ${user}:[REDACTED]@mirror rejected`,
+        );
+      }
+    }
+  });
+
+  it.each([
+    ["password='first second' host=db", 'password=[REDACTED] host=db'],
+    ['pass="first second"; retry=no', 'pass=[REDACTED]; retry=no'],
+    ["PASSWORD = 'first second' host=db", 'PASSWORD=[REDACTED] host=db'],
+    [String.raw`password='first\' second\\ third' host=db`, 'password=[REDACTED] host=db'],
+    [String.raw`password=first\ second host=db`, 'password=[REDACTED] host=db'],
+    ["password='first & second; third' host=db", 'password=[REDACTED] host=db'],
+    ["password='first second", 'password=[REDACTED]'],
+    ['pass="first second' + '\\', 'pass=[REDACTED]'],
+    ["password='' host=db", 'password=[REDACTED] host=db'],
+    ['?password=first&sslmode=require', '?password=[REDACTED]&sslmode=require'],
+    ["password='first second' pass=third", 'password=[REDACTED] pass=[REDACTED]'],
+  ])('redacts complete credential fragments: %s', (fragment, expected) => {
+    // The original connection string differs from the partial diagnostic, so
+    // full-string replacement cannot hide an incomplete fragment redaction.
+    expect(redactConnectionString(`authentication failed: ${fragment}`, 'host=db password=example')).toBe(
+      `authentication failed: ${expected}`,
+    );
+  });
+
+  it.each(['password', 'pass'])('redacts every repeated %s query value, decoded and encoded', (key) => {
+    const first = 'first-query-secret';
+    const last = 'last query:secret';
+    const encoded = encodeURIComponent(last);
+    const connectionString = `postgres://doctor@db.example.com/app?${key}=${first}&${key}=${encoded}`;
+    // pg-connection-string uses the last repeated password, not the first.
+    // A driver diagnostic need not retain the query key or the entire URL.
+    const message = `credentials "${first}", "${last}", "${encoded}" rejected`;
+    expect(redactConnectionString(message, connectionString)).toBe(
+      'credentials "[REDACTED]", "[REDACTED]", "[REDACTED]" rejected',
+    );
+  });
+
+  it('redacts overlapping query secrets completely, regardless of key or parameter order', () => {
+    const connectionString = 'postgres://doctor@db.example.com/app?password=shared-secret&pass=shared-secret-suffix&password=shared-secret-longer';
+    expect(redactConnectionString('shared-secret-suffix / shared-secret-longer', connectionString)).toBe(
+      '[REDACTED] / [REDACTED]',
+    );
+  });
+
+  it('does not leave query-secret suffixes after redacting a shorter userinfo password', () => {
+    const connectionString = 'postgres://doctor:shared-secret@db.example.com/app?password=shared-secret-suffix&pass=shared-secret-longer';
+    expect(redactConnectionString('shared-secret-suffix / shared-secret-longer', connectionString)).toBe(
+      '[REDACTED] / [REDACTED]',
+    );
+  });
+
+  it.each([
+    ['doctor', 'x', 'doctor', 'x'],
+    ['doctor', 'ab', 'doctor', 'ab'],
+    ['', 'ab', '', 'ab'],
+    ['doc%40tor', 'ab', 'doc%40tor', 'ab'],
+    ['doc%40tor', 'ab', 'doc@tor', 'ab'],
+    ['doctor', '%2a', 'doctor', '%2a'],
+    ['doctor', '%2a', 'doctor', '%2A'],
+    ['doctor', '%2a', 'doctor', '*'],
+    ['doc%40tor', '%C3%A9', 'doc%40tor', 'é'],
+  ])('redacts short userinfo credentials (%s:%s) rendered as %s:%s', (user, password, renderedUser, renderedPassword) => {
+    const connectionString = `postgres://${user}:${password}@db.example.com/app?sslmode=require`;
+    // A driver may omit the query/path or decode userinfo when reporting an
+    // error, so replacing only the full connection string is insufficient.
+    const message = `login failed at postgres://${renderedUser}:${renderedPassword}@mirror; backend labeled "ab"`;
+    expect(redactConnectionString(message, connectionString)).toBe(
+      `login failed at postgres://${renderedUser}:[REDACTED]@mirror; backend labeled "ab"`,
+    );
+  });
+
 });
