@@ -22,6 +22,20 @@ function decodeCredential(value: string): string {
   }
 }
 
+// Preserve the supplied spelling as well as URL-decoded and normalized forms.
+// Percent escapes are case-insensitive; URLSearchParams loses their raw form.
+function credentialForms(raw: string, decoded: string): string[] {
+  const encoded = encodeURIComponent(decoded);
+  return [
+    raw,
+    raw.replace(/%[\da-f]{2}/gi, (escape) => escape.toUpperCase()),
+    raw.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
+    decoded,
+    encoded,
+    encoded.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
+  ];
+}
+
 /**
  * Removes connection-string credential material from `message`.
  *
@@ -46,13 +60,7 @@ export function redactConnectionString(message: string, connectionString?: strin
     const url = new URL(connectionString);
     const user = decodeCredential(url.username);
     const password = decodeCredential(url.password);
-    const passwordForms = new Set([
-      url.password,
-      url.password.replace(/%[\da-f]{2}/gi, (escape) => escape.toUpperCase()),
-      url.password.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
-      password,
-      encodeURIComponent(password),
-    ]);
+    const passwordForms = new Set(credentialForms(url.password, password));
     if (password) {
       // Identifiable userinfo is safe to redact even for a short password.
       for (const username of new Set([url.username, user])) {
@@ -64,9 +72,11 @@ export function redactConnectionString(message: string, connectionString?: strin
     // Cover every repeated query value, not just the first. Replace longer
     // secrets first so overlapping userinfo/query passwords leave no suffix.
     const secrets = new Set(
-      ['password', 'pass'].flatMap((key) => url.searchParams.getAll(key))
-        .filter(Boolean)
-        .flatMap((value) => [value, encodeURIComponent(value)]),
+      url.search.slice(1).split('&').flatMap((parameter) => {
+        const [key, value] = [...new URLSearchParams(parameter)][0] ?? [];
+        if ((key !== 'password' && key !== 'pass') || !value) return [];
+        return credentialForms(parameter.slice(parameter.indexOf('=') + 1), value);
+      }),
     );
     // Preserve short standalone text to avoid corrupting unrelated diagnostics.
     if (password && password.length >= 3) {

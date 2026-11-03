@@ -52,6 +52,8 @@ The sanitizer covers raw/decoded/percent-encoded userinfo, including short
 passwords in identifiable `user:password@` context. Malformed percent escapes in
 one component do not bypass other redaction. Short standalone userinfo passwords
 are intentionally not replaced globally, to preserve unrelated diagnostic text.
+Query passwords retain their original encoded spelling as well as decoded and
+normalized forms, including lowercase/mixed-case percent escapes and `+` spaces.
 Every repeated `password`/`pass` query value is redacted, longest-first across
 query and userinfo secrets to avoid leaking overlapping suffixes. Partial
 `password=`/`pass=` fragments also cover quoted/escaped values and truncated

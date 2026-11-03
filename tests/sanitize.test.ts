@@ -142,6 +142,32 @@ describe('redactConnectionString', () => {
     );
   });
 
+  describe.each(['password', 'pass'])('%s query password encoding', (key) => {
+    it.each([
+      ['first%2fsecret', 'first/secret'],
+      ['first%2fsecret%3Asuffix', 'first/secret:suffix'],
+      ['first%2Fsecret%3asuffix', 'first/secret:suffix'],
+      ['first+secret%3asuffix', 'first secret:suffix'],
+      ['%66irst%2fsecret', 'first/secret'],
+    ])('redacts raw and normalized forms of %s', (raw, decoded) => {
+      const encoded = encodeURIComponent(decoded);
+      const forms = new Set([
+        raw,
+        raw.replace(/%[\da-f]{2}/gi, (escape) => escape.toUpperCase()),
+        raw.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
+        decoded,
+        encoded,
+        encoded.replace(/%[\da-f]{2}/gi, (escape) => escape.toLowerCase()),
+      ]);
+      const connectionString = `postgres://doctor@db.example.com/app?${key}=${raw}`;
+      for (const form of forms) {
+        expect(redactConnectionString(`rejected "${form}"`, connectionString)).toBe(
+          'rejected "[REDACTED]"',
+        );
+      }
+    });
+  });
+
   it('redacts overlapping query secrets completely, regardless of key or parameter order', () => {
     const connectionString = 'postgres://doctor@db.example.com/app?password=shared-secret&pass=shared-secret-suffix&password=shared-secret-longer';
     expect(redactConnectionString('shared-secret-suffix / shared-secret-longer', connectionString)).toBe(

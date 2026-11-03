@@ -450,7 +450,10 @@ A milestone item is not done because code exists. It is done only when all of th
 CLI parser diagnostics are sanitized before Commander writes them, not only
 when connection errors are caught. `tests/sanitize.test.ts` covers short and
 malformed userinfo, quoted/escaped fragments, and repeated/overlapping query
-passwords; `tests/secret-regression.test.ts` covers usage errors and status/replay
+passwords, including original mixed/lowercase percent escapes and `+` spaces.
+Ten query-encoding regressions failed before the follow-up fix in PR #97;
+the full suite then passed 178 tests with disposable PostgreSQL 16.
+`tests/secret-regression.test.ts` covers usage errors and status/replay
 failure paths. Keep the text/JSON connection-failure cases as separate tests
 (one CLI subprocess each) without weakening assertions or increasing timeouts.
 

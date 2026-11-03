@@ -8,6 +8,9 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ### Fixed
 
+- redact query-string passwords in their original percent-encoded spelling,
+  including lowercase/mixed-case escapes and form-encoded spaces
+
 - sanitize CLI usage errors before Commander writes them, including credentials
   in malformed options, unexpected arguments, and `DATABASE_URL`
 - redact short userinfo passwords, malformed/encoded credential components,
