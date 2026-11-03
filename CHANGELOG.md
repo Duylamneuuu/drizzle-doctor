@@ -6,6 +6,20 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- Run PostgreSQL status inspection in a server-enforced read-only transaction,
+  rejecting database writes invoked through metadata views or policies.
+- Refuse status/replay inspection when row-level security would filter migration
+  history instead of treating hidden rows as absent or an empty replay target.
+  This fails closed without bypassing RLS policies.
+- Keep inspection and its transaction-local RLS guard on one backend behind
+  transaction-pooling proxies, then end inspection before replay setup.
+- `status` and `replay` now fail with an operational error when the configured
+  PostgreSQL migration table exists but the connection role cannot read it.
+  Replay refuses before setup or migration SQL, avoiding nontransactional
+  sequence side effects even when history insertion would later fail.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
