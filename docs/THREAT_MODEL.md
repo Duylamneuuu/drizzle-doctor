@@ -43,6 +43,21 @@ Control: core database status adapter uses read queries only. Mutation belongs o
 
 Control: connection strings are accepted through arguments/environment but never copied into structured/text reports. Driver errors are sanitized before display (`src/sanitize.ts`): the connection string, its `user:password@` prefix, percent-encoded password forms, and `password=` fragments are redacted, and the original error is never printed. Tests assert the invariant end-to-end (`tests/sanitize.test.ts`, `tests/cli.test.ts`). Tests and bug templates warn against posting real credentials. Documented guidance prefers `DATABASE_URL` over `--database-url` to keep credentials out of shell history and process listings.
 
+Commander parser errors are sanitized before being written, as well as the
+final caught diagnostic. Credential inputs are captured before argument parsing
+from `DATABASE_URL`, both `--database-url` forms, and PostgreSQL URLs accidentally
+pasted into arguments. Usage failures keep stdout empty and retain exit code 2.
+
+The sanitizer covers raw/decoded/percent-encoded userinfo, including short
+passwords in identifiable `user:password@` context. Malformed percent escapes in
+one component do not bypass other redaction. Short standalone userinfo passwords
+are intentionally not replaced globally, to preserve unrelated diagnostic text.
+Every repeated `password`/`pass` query value is redacted, longest-first across
+query and userinfo secrets to avoid leaking overlapping suffixes. Partial
+`password=`/`pass=` fragments also cover quoted/escaped values and truncated
+quotes, even when no connection string was captured. Unit and subprocess regressions live in `tests/sanitize.test.ts` and
+`tests/secret-regression.test.ts`.
+
 ### Malicious SQL in a repository
 
 Current `repo`/`status` modes hash/read SQL; they do not execute it. The
