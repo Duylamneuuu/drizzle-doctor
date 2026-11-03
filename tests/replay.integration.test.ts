@@ -15,7 +15,7 @@ import path from 'node:path';
 import { Client } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { readPostgresMigrationState } from '../src/postgres.js';
+import { quoteIdentifier, readPostgresMigrationState } from '../src/postgres.js';
 import { replayMigrations } from '../src/replay.js';
 import { inspectMigrationRepository } from '../src/repository.js';
 
@@ -119,6 +119,46 @@ suite('replayMigrations', () => {
 
     const accounts = await client.query(`select name from ${q('accounts')}`);
     expect(accounts.rows).toEqual([{ name: 'alice' }]);
+  });
+
+  it.each([false, true])('refuses inaccessible history before migration side effects (populated: %s)', async (populated) => {
+    if (!connectionString) throw new Error('TEST_DATABASE_URL is required for this test');
+    const role = 'drizzle_doctor_replay_visibility';
+    const restrictedUrl = new URL(connectionString);
+    restrictedUrl.username = role;
+    restrictedUrl.password = 'doctor_replay_visibility_test';
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_probe' }],
+      { '0000_probe.sql': `select nextval('${q('side_effect_probe')}');` },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    await client.query(`create table ${q('__drizzle_migrations')}
+      (id serial primary key, hash text not null, created_at bigint)`);
+    if (populated) {
+      await client.query(`insert into ${q('__drizzle_migrations')} (hash, created_at) values ('existing', 1000)`);
+    }
+    // Sequence advancement survives rollback, unlike ordinary table writes.
+    await client.query(`create sequence ${q('side_effect_probe')}`);
+    await client.query(`create role ${role} login password 'doctor_replay_visibility_test'`);
+    try {
+      const database = await client.query<{ name: string }>('select current_database() as name');
+      await client.query(`grant create on database ${quoteIdentifier(database.rows[0]!.name)} to ${role}`);
+      await client.query(`grant usage, create on schema "${schema}" to ${role}`);
+      await client.query(`grant usage on sequence ${q('side_effect_probe')} to ${role}`);
+      // Deliberately grant no privileges on the existing history table.
+      const outcome = await replayMigrations({
+        connectionString: restrictedUrl.toString(), schema,
+        table: '__drizzle_migrations', migrations: inspection.migrations,
+      }).then((result) => ({ result }), (error: unknown) => ({ error }));
+      const probe = await client.query<{ is_called: boolean }>(`select is_called from ${q('side_effect_probe')}`);
+      expect(probe.rows[0]?.is_called).toBe(false);
+      expect(outcome).toMatchObject({ error: { code: '42501' } });
+      const history = await client.query(`select hash from ${q('__drizzle_migrations')}`);
+      expect(history.rows).toEqual(populated ? [{ hash: 'existing' }] : []);
+    } finally {
+      await client.query(`drop owned by ${role}`);
+      await client.query(`drop role ${role}`);
+    }
   });
 
   it('supports custom migration schema and table names', async () => {

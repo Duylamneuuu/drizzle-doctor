@@ -496,15 +496,16 @@ Optimize for reproducible evidence that the tool catches migration-history probl
 
 - Main and the individual safety PRs were green, but combining #65 (catalog
   discovery), #80 (read-only status), and #85 (fail-closed RLS inspection)
-  exposed three failing transaction-lifecycle tests: #85's mock recognized
-  only the old status discovery query.
+  exposed three failing transaction-lifecycle tests coupled to the old query.
 - Consolidated those fixes and their regression tests on the maintenance
-  branch. Status assertions now require catalog discovery; replay assertions
-  still require its existing discovery query. No safety assertions were
-  removed. Read-only, privilege, RLS, transaction cleanup, and replay refusal
-  behavior remain covered together.
+  branch. Both adapters now require catalog discovery in lifecycle assertions;
+  no safety assertions were removed.
+- Independent review found replay still mistook privilege-hidden history for
+  an empty target. Two new regressions reproduced sequence advancement before
+  history insertion failed, with both empty and populated inaccessible tables.
+  Replay now uses catalog discovery too and rejects before setup/migration SQL.
 - Local verification on Node 22 with a newly initialized disposable PostgreSQL
-  16 cluster: typecheck, all **142 tests** (none skipped), build, package dry-run,
+  16 cluster: typecheck, all **144 tests** (none skipped), build, package dry-run,
   and diff checks passed. The baseline passed all **125 tests** with PostgreSQL.
 - The consolidated PR is intended to replace #65/#80/#85 after review and
   successful CI; keep the originals open until it lands. This does not resolve
@@ -512,8 +513,7 @@ Optimize for reproducible evidence that the tool catches migration-history probl
 - Highest-priority follow-up: land the reviewed PostgreSQL safety integration,
   then review the overlapping credential-redaction fixes. Do not start broad
   M5 features while those existing safety patches await landing.
-- npm publication, release tags, Node support changes, and production writes
-  remain gated. No release or publication was performed.
 - Registry check confirmed the current stable Drizzle release is still
-  `0.45.4`; its published PostgreSQL migrator source retains the modeled
-  high-watermark/hash behavior. No migration-comparison semantics changed.
+  `0.45.4`; its published PostgreSQL migrator retains the modeled timestamp/hash
+  behavior. No migration-comparison semantics changed. npm publication, release
+  tags, Node support changes, and production writes remain gated.

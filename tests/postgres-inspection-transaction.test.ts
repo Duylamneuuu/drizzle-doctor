@@ -37,7 +37,7 @@ describe('transaction-local migration history inspection', () => {
     client.end.mockResolvedValue(undefined);
     client.query.mockImplementation(async (sql) => {
       if (failAt?.test(sql)) throw failure;
-      if (sql.includes('information_schema.tables') || sql.includes('pg_catalog.pg_class')) return { rows: [{ exists: tableExists }] };
+      if (sql.includes('pg_catalog.pg_class')) return { rows: [{ exists: tableExists }] };
       if (sql.startsWith('select count')) return { rows: [{ n: String(rowCount) }] };
       if (sql.startsWith('select id')) return { rows: [{ id: 1, hash: 'existing', created_at: '1000' }] };
       return { rows: [] };
@@ -73,7 +73,7 @@ describe('transaction-local migration history inspection', () => {
     expect(await replay()).toMatchObject({ blocked: 'TARGET_NOT_EMPTY', applied: 0, blockedRowCount: 1 });
     expect(statements()).toEqual([
       'begin read only', 'set local row_security = off',
-      expect.stringContaining('information_schema.tables'), expect.stringContaining('select count(*)'), 'commit',
+      expect.stringContaining('pg_catalog.pg_class'), expect.stringContaining('select count(*)'), 'commit',
     ]);
     expect(client.end).toHaveBeenCalledOnce();
   });
@@ -84,7 +84,7 @@ describe('transaction-local migration history inspection', () => {
     expect(await replay()).toMatchObject({ applied: 0 });
     const sql = statements();
     expect(sql.slice(0, 3)).toEqual([
-      'begin read only', 'set local row_security = off', expect.stringContaining('information_schema.tables'),
+      'begin read only', 'set local row_security = off', expect.stringContaining('pg_catalog.pg_class'),
     ]);
     const commit = sql.indexOf('commit');
     expect(commit).toBe(exists ? 4 : 3);
