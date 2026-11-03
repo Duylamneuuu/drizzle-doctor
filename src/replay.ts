@@ -95,8 +95,9 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
       const existing = await client.query<{ exists: boolean }>(
         `select exists (
           select 1
-          from information_schema.tables
-          where table_schema = $1 and table_name = $2
+          from pg_catalog.pg_class as relation
+          join pg_catalog.pg_namespace as namespace on namespace.oid = relation.relnamespace
+          where namespace.nspname = $1 and relation.relname = $2
         ) as exists`,
         [schema, table],
       );

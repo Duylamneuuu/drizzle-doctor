@@ -15,9 +15,10 @@ The project intends to follow Semantic Versioning once packages are published.
   This fails closed without bypassing RLS policies.
 - Keep inspection and its transaction-local RLS guard on one backend behind
   transaction-pooling proxies, then end inspection before replay setup.
-- `status` now fails with an operational error when the configured PostgreSQL
-  migration table exists but the connection role cannot read it, instead of
-  reporting the table as missing and all local migrations as pending.
+- `status` and `replay` now fail with an operational error when the configured
+  PostgreSQL migration table exists but the connection role cannot read it.
+  Replay refuses before setup or migration SQL, avoiding nontransactional
+  sequence side effects even when history insertion would later fail.
 
 ### Changed
 
