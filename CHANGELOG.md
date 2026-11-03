@@ -1,10 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- Refuse PostgreSQL status/replay inspections when row-level security would
+  filter migration history. Status no longer reports hidden rows as absent,
+  and replay refuses before setup or migration SQL instead of treating a
+  filtered history as an empty target. This does not bypass RLS policies.
+- Keep the RLS guard and metadata inspection in a single read-only
+  transaction, including behind transaction-pooling proxies, and clear the
+  guard at transaction end before replay setup.
+
 All notable changes to this project will be documented here.
 
 The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
+
+### Fixed
+
+- `status` now fails with an operational error when the configured PostgreSQL
+  migration table exists but the connection role cannot read it, instead of
+  reporting the table as missing and all local migrations as pending.
 
 ### Changed
 

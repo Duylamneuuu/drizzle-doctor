@@ -29,17 +29,28 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
   await client.connect();
 
   try {
+    // Pin a single backend even behind a transaction-pooling proxy. Also
+    // prevent SELECT from invoking writing views or row-security policies.
+    await client.query('begin read only');
+    // Fail rather than accept an incomplete history when RLS would filter
+    // rows. This does not bypass policies or grant any additional access.
+    await client.query('set local row_security = off');
+
+    // information_schema hides tables this role cannot access. Discover them
+    // through the catalog so the read fails rather than reporting false absence.
     const existence = await client.query<{ exists: boolean }>(
       `select exists (
         select 1
-        from information_schema.tables
-        where table_schema = $1 and table_name = $2
+        from pg_catalog.pg_class as relation
+        join pg_catalog.pg_namespace as namespace on namespace.oid = relation.relnamespace
+        where namespace.nspname = $1 and relation.relname = $2
       ) as exists`,
       [schema, table],
     );
 
     const tableExists = Boolean(existence.rows[0]?.exists);
     if (!tableExists) {
+      await client.query('commit');
       return { schema, table, tableExists: false, rows: [] };
     }
 
@@ -60,7 +71,11 @@ export async function readPostgresMigrationState(options: PostgresReadOptions): 
       };
     });
 
+    await client.query('commit');
     return { schema, table, tableExists: true, rows };
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
   } finally {
     await client.end();
   }
