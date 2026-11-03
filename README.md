@@ -196,6 +196,11 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the high-level roadmap.
 - Compatibility is verified for journal-based PostgreSQL migrations from
   `drizzle-orm@0.45.2` through `0.45.4` / `drizzle-kit@0.31.10`; the moving Drizzle v1
   release-candidate folder/table format is not supported yet.
+- PostgreSQL inspection requires complete migration history: `status` and
+  `replay` fail with an operational error (exit `2`) if row-level security
+  would filter migration rows. They do not bypass RLS policies.
+  The guard and metadata queries share a read-only transaction so that
+  transaction-pooling proxies cannot separate them across server sessions.
 - `status` verifies migration metadata consistency, not application-schema or
   SQL correctness. A PASS is not a full database health guarantee.
 - `replay` must use a disposable PostgreSQL database and deliberately commits
