@@ -2,7 +2,7 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-10-09.
+Last reviewed: 2026-11-03.
 
 ## 1. Mission
 
@@ -444,6 +444,15 @@ A milestone item is not done because code exists. It is done only when all of th
 - security implications are reviewed
 - no known P0/P1 regression remains
 - acceptance criteria in `docs/MILESTONES.md` are met
+
+### Credential diagnostics regression coverage
+
+CLI parser diagnostics are sanitized before Commander writes them, not only
+when connection errors are caught. `tests/sanitize.test.ts` covers short and
+malformed userinfo, quoted/escaped fragments, and repeated/overlapping query
+passwords; `tests/secret-regression.test.ts` covers usage errors and status/replay
+failure paths. Keep the text/JSON connection-failure cases as separate tests
+(one CLI subprocess each) without weakening assertions or increasing timeouts.
 
 ## 8. Stop and ask for maintainer approval
 
