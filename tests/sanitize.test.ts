@@ -8,6 +8,16 @@ import { redactConnectionString } from '../src/sanitize.js';
 const URL = 'postgres://doctor:s3cr3t-pass@db.example.com:5432/app';
 
 describe('redactConnectionString', () => {
+  it.each(['q', 'q7'])('redacts short userinfo passwords across username escape casing: %s', (password) => {
+    const connection = `postgres://user%3Aname%2frole:${password}@db.example.com/app`;
+    for (const username of ['user%3Aname%2frole', 'user%3Aname%2Frole', 'user%3aname%2frole', 'user%3aname%2Frole', 'user:name/role']) {
+      expect(redactConnectionString(`login ${username}:${password}@mirror rejected`, connection)).toBe(
+        `login ${username}:[REDACTED]@mirror rejected`,
+      );
+    }
+    expect(redactConnectionString(`retry ${password} queries`, connection)).toBe(`retry ${password} queries`);
+  });
+
   it('redacts the full connection string when a driver embeds it verbatim', () => {
     const message = `connect ECONNREFUSED while connecting to ${URL} (retrying)`;
     expect(redactConnectionString(message, URL)).toBe(
