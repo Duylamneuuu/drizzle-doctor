@@ -65,6 +65,23 @@ Composite Action inputs are mapped through environment variables and quoted as
 Bash array values. Caller-supplied paths/schema/table names are never
 interpolated into shell source.
 
+Finding messages include untrusted migration tags, paths and database
+identifiers. Plain Action logs escape CR/LF and legacy `##[` command prefixes
+so repository input cannot forge GitHub workflow commands. Summary cells encode
+ASCII punctuation as character references so findings cannot inject links,
+images, HTML, formatting or extra table cells, including in the stdout fallback.
+This is presentation-only; JSON findings and intentional, escaped error
+annotations retain their original content.
+
+`tests/action-command-execution.test.ts` exercises the actual embedded Bash/Node
+summary step with a malicious journal rendered by the built CLI, covering both
+summary-file and stdout-fallback paths while preserving intentional annotations.
+Unsupported Action modes are rejected with a fixed diagnostic that does not
+echo the input, keeping injected workflow commands and accidentally supplied
+secrets out of validation logs. Each invocation owns a fresh report; operational
+failures cannot reuse a previous passing verdict. Execution tests cover these
+controls together, including repeated invocations in the same runner directory.
+
 ### False reassurance
 
 A PASS means only that implemented checks found no error-level findings. It is not proof that application schema or migration SQL is logically correct. Documentation and output should avoid presenting the tool as a full database verifier.

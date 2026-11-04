@@ -84,12 +84,16 @@ forked-repo code could observe them.
   and renders the report into the job summary.
 - Job summary: `pass ✅` / `findings ❌` heading, command, migration count,
   findings count, `status`-only counters, and a findings table (capped at 50
-  rows; the full report is echoed per-finding into the log).
+  rows; the full report is echoed per-finding into the log). Finding messages
+  are rendered as literal text, not interpreted as Markdown links, images or HTML.
 - Error-level findings also become `::error` annotations (capped at 10).
 - Output `ok` is `'true'` when the audit completed with no error-level
   findings, `'false'` otherwise (including when the audit could not
   complete). The step still re-exits with the CLI's exit code (0/1/2) so the
   job fails correctly.
+- Each invocation uses its own fresh temporary report. Multiple uses in one
+  job cannot reuse an earlier verdict, and early/operational failures render
+  the could-not-complete summary with `ok=false`.
 - Rendering semantics live in `src/action-summary.ts` (built to
   `dist/action-summary.js` inside the action checkout) and are pinned by
   `tests/action-summary.test.ts`. That module is **internal** to the Action
