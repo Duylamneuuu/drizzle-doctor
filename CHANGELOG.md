@@ -6,6 +6,16 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Security
+
+- update development-only Vitest to 4.1.12 and Vite to 8.2.4 to address
+  mock-registration code injection, mock redirect traversal, and development
+  server/editor endpoint advisories; retain the existing major versions and
+  Node 20 support, with no runtime dependency or migration behavior changes
+- update transitive development-only `source-map-js` to 1.2.2 to address
+  indexed source-map section offsets causing event-loop denial of service
+  (GHSA-68fv-2mgg-jv7q)
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing
