@@ -12,6 +12,9 @@ The project intends to follow Semantic Versioning once packages are published.
   mock-registration code injection, mock redirect traversal, and development
   server/editor endpoint advisories; retain the existing major versions and
   Node 20 support, with no runtime dependency or migration behavior changes
+- update transitive development-only `source-map-js` to 1.2.2 to address
+  indexed source-map section offsets causing event-loop denial of service
+  (GHSA-68fv-2mgg-jv7q)
 
 ### Changed
 

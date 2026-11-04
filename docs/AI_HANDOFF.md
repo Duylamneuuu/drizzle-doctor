@@ -4,6 +4,22 @@ This document is the canonical entry point for coding agents working on `drizzle
 
 Last reviewed: 2026-10-09.
 
+## Maintenance follow-up — 2026-11-04 (PR #93, not yet landed)
+
+PR #93 now combines the development-tool advisory fixes with the
+`source-map-js@1.2.2` lockfile patch from #56. Vitest stays on major 4 and
+Vite on major 8; runtime dependencies, Node support, findings, and migration
+semantics are unchanged. On this branch, both `npm audit` and
+`npm audit --omit=dev` report zero vulnerabilities. Local typecheck, build,
+package dry-run, and all 125 tests (including an isolated disposable
+PostgreSQL 16 database, no skips) passed.
+
+Keep #56 open until the combined PR is reviewed and landed, then retire it
+as superseded. Issue #95 tracks the broader unlanded safety/security queue;
+prioritize maintainer review/integration over another overlapping patch.
+No npm publication, release, or milestone completion is authorized by this
+maintenance update; #5 remains maintainer-gated.
+
 ## 1. Mission
 
 `drizzle-doctor` is an open-source developer tool that diagnoses Drizzle migration integrity before deployment.
