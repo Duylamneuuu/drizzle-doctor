@@ -63,7 +63,8 @@ export function redactConnectionString(message: string, connectionString?: strin
     const passwordForms = new Set(credentialForms(url.password, password));
     if (password) {
       // Identifiable userinfo is safe to redact even for a short password.
-      for (const username of new Set([url.username, user])) {
+      // Drivers may normalize percent-escape casing in the username too.
+      for (const username of new Set(credentialForms(url.username, user))) {
         for (const value of passwordForms) {
           redacted = replaceAll(redacted, `${username}:${value}@`, `${username}:${REDACTED}@`);
         }
