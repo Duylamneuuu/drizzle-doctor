@@ -2,7 +2,30 @@
 
 This document is the canonical entry point for coding agents working on `drizzle-doctor`.
 
-Last reviewed: 2026-10-09.
+Last reviewed: 2026-11-06.
+
+## Current safety integration (2026-11-06)
+
+- This branch combines the overlapping migration-file safety fixes from #66
+  and #70. Inspection/replay reject escaping symlinks and non-regular files;
+  replay hashes the exact contained SQL read before executing it, rejecting
+  changes instead of recording stale hashes. Internal symlinks remain supported.
+- Both original regression sets are retained, plus combined coverage for
+  same-content escapes and changed/unchanged SQL through internal symlinks.
+  These changes do not constitute a general filesystem or SQL sandbox.
+- Current stable upstream remains `drizzle-orm@0.45.4`; its published migrator
+  and PostgreSQL dialect were freshly rechecked. Default read-only behavior,
+  finding/JSON contracts, dependencies and Node 20 support are unchanged.
+- Local verification: `npm run typecheck`, all 140 tests with a fresh disposable
+  PostgreSQL 16 target (none skipped), `npm run build`, `npm pack --dry-run`
+  (47 intended files), and `git diff --check` passed. Remote CI must still
+  validate the published integration head; these results are not merge approval.
+- After review and merge, this integration should replace #66/#70; leave them
+  open until then. The highest-priority remaining work is maintainer-reviewed
+  landing of the other safety integrations (#96–#99), tracked by #95.
+  Main CI is green but does not validate unmerged fixes together. Do not mark
+  M2/M5 complete or publish npm/release tags on this evidence.
+
 
 ## 1. Mission
 

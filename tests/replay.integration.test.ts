@@ -8,12 +8,12 @@
 // other objects land wherever the SQL points them. Fixtures therefore use
 // schema-qualified object names (as drizzle-kit generates for custom
 // schemas) so assertions are deterministic.
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
 import { Client } from 'pg';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { readPostgresMigrationState } from '../src/postgres.js';
 import { replayMigrations } from '../src/replay.js';
@@ -69,6 +69,10 @@ suite('replayMigrations', () => {
     await resetTarget(client);
   });
 
+  afterEach(async () => {
+    await client.end();
+  });
+
   afterAll(async () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
     if (!connectionString) return;
@@ -84,7 +88,38 @@ suite('replayMigrations', () => {
     }
   });
 
-  it('replays a healthy multi-migration history and records Drizzle bookkeeping rows', async () => {
+  it.each([false, true])('rechecks containment for an escaping SQL symlink (same content: %s)', async (sameContent) => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }],
+      { '0000_first.sql': 'select 1;' },
+    );
+    const inspection = await inspectMigrationRepository(dir);
+    expect(inspection.findings).toEqual([]);
+    const sqlPath = inspection.migrations[0]!.sqlPath;
+    const outsidePath = path.join(path.dirname(dir), 'outside.sql');
+    await writeFile(outsidePath, sameContent ? 'select 1;' : `create table ${q('never_table')}(id integer);`);
+    await rm(sqlPath);
+    await symlink(outsidePath, sqlPath);
+
+    await expect(replayMigrations({
+      connectionString: connectionString!,
+      schema,
+      table: '__drizzle_migrations',
+      migrations: inspection.migrations,
+    })).rejects.toThrow('File resolves outside the configured migrations directory.');
+
+    const snapshot = await readPostgresMigrationState({
+      connectionString: connectionString!, schema, table: '__drizzle_migrations',
+    });
+    expect(snapshot.rows).toEqual([]);
+    const target = await client.query<{ target: string | null }>(
+      'select to_regclass($1) as target', [`${schema}.never_table`],
+    );
+    expect(target.rows[0]?.target).toBeNull();
+
+  });
+
+  it.each([false, true])('replays healthy history through internal SQL symlinks: %s', async (useSymlinks) => {
     const { dir } = await migration(
       [
         { idx: 0, when: 1000, tag: '0000_first' },
@@ -95,6 +130,15 @@ suite('replayMigrations', () => {
         '0001_second.sql': `insert into ${q('accounts')} (name) values ('alice');`,
       },
     );
+    if (useSymlinks) {
+      await mkdir(path.join(dir, 'sql'));
+      for (const file of ['0000_first.sql', '0001_second.sql']) {
+        const sourcePath = path.join(dir, file);
+        const targetPath = path.join(dir, 'sql', file);
+        await rename(sourcePath, targetPath);
+        await symlink(targetPath, sourcePath);
+      }
+    }
     const inspection = await inspectMigrationRepository(dir);
 
     const result = await replayMigrations({
@@ -119,6 +163,58 @@ suite('replayMigrations', () => {
 
     const accounts = await client.query(`select name from ${q('accounts')}`);
     expect(accounts.rows).toEqual([{ name: 'alice' }]);
+  });
+
+  it.each(['file', 'internal symlink'])('rejects changed SQL via %s before execution or recording its old hash', async (replacement) => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }],
+      { '0000_first.sql': `create table ${q('first_table')}(id int);` },
+    );
+    const inspected = await inspectMigrationRepository(dir);
+    const sqlPath = path.join(dir, '0000_first.sql');
+    let replacementPath = sqlPath;
+    if (replacement === 'internal symlink') {
+      await mkdir(path.join(dir, 'sql'));
+      replacementPath = path.join(dir, 'sql', 'replacement.sql');
+      await rm(sqlPath);
+      await symlink(replacementPath, sqlPath);
+    }
+    await writeFile(replacementPath, `create table ${q('never_table')}(id int);`);
+
+    await expect(replayMigrations({
+      connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspected.migrations,
+    })).rejects.toThrow('Migration 0000_first changed since repository inspection.');
+
+    const snapshot = await readPostgresMigrationState({ connectionString: connectionString!, schema });
+    expect(snapshot.rows).toEqual([]);
+    const objects = await client.query<{ original: string | null; changed: string | null }>(
+      'select to_regclass($1)::text as original, to_regclass($2)::text as changed',
+      [`${schema}.first_table`, `${schema}.never_table`],
+    );
+    expect(objects.rows[0]).toEqual({ original: null, changed: null });
+
+  });
+
+  it('stops at a changed later migration while retaining correctly hashed earlier work', async () => {
+    const { dir } = await migration(
+      [{ idx: 0, when: 1000, tag: '0000_first' }, { idx: 1, when: 2000, tag: '0001_second' }],
+      {
+        '0000_first.sql': `create table ${q('first_table')}(id int);`,
+        '0001_second.sql': `create table ${q('never_table')}(id int);`,
+      },
+    );
+    const inspected = await inspectMigrationRepository(dir);
+    await writeFile(path.join(dir, '0001_second.sql'), `insert into ${q('first_table')} values (42);`);
+
+    await expect(replayMigrations({
+      connectionString: connectionString!, schema, table: '__drizzle_migrations', migrations: inspected.migrations,
+    })).rejects.toThrow('Migration 0001_second changed since repository inspection.');
+
+    const snapshot = await readPostgresMigrationState({ connectionString: connectionString!, schema });
+    expect(snapshot.rows).toEqual([{ id: 1, hash: inspected.migrations[0]!.hash, createdAt: 1000 }]);
+    const rows = await client.query(`select * from ${q('first_table')}`);
+    expect(rows.rows).toEqual([]);
+
   });
 
   it('supports custom migration schema and table names', async () => {
