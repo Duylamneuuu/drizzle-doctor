@@ -8,13 +8,35 @@ tool models Drizzle migration semantics that can change upstream.
 
 - Package: `drizzle-orm@0.45.4` (pinned as an exact devDependency for the
   compatibility tests in `tests/upstream-semantics.test.ts`)
-- Verified: 2026-09-02 against `0.45.2`; `0.45.4` re-verified 2026-10-09 (see
-  "Upstream watch (2026-10-09)"); both npm-published builds
+- Verified: 2026-09-02 against `0.45.2`; `0.45.4` re-verified 2026-11-06
+  against npm-published sources (see the weekly watch below)
 - Source references (at verification time):
   - `readMigrationFiles`, migration file reading/hash logic:
     https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/migrator.ts
   - PostgreSQL migrator, high-watermark logic and migration table DDL:
     https://github.com/drizzle-team/drizzle-orm/blob/main/drizzle-orm/src/pg-core/dialect.ts
+
+## Upstream watch (2026-11-06)
+
+Registry `latest` remains ORM **0.45.4**, with Kit **0.31.11**; both `rc` tags
+remain **1.0.0-rc.5** (`beta`: **1.0.0-beta.22**, no `next` tag). Comparing
+published ORM 0.45.2 and 0.45.4 found byte-identical `migrator.js` and
+`pg-core/dialect.js`: no change to journal fields, whole-file hashes,
+`created_at`, migration table defaults, timestamp high-watermark, or raw
+breakpoint execution. Kit 0.31.11 adds a warning for non-increasing journal
+timestamps; this reinforces, rather than removes, the stable skip hazard.
+
+RC.5 remains a separate, unsupported compatibility track: it rejects legacy
+journal folders, reads per-migration `migration.sql` folders, and selects
+pending PostgreSQL migrations by recorded name instead of the stable timestamp
+frontier. Its table adds `name` and `applied_at`; `created_at` remains a migration
+timestamp, not execution time. No v1 support claim, dependency bump, or behavior
+change follows from this watch. This is published-source review, not proof
+against unreleased upstream commits or additional runtime combinations.
+
+See [the weekly review](reviews/2026-11-06.md#relevant-upstream-drizzle-review)
+for exact versioned source artifacts and the scope of verification. Earlier
+dated watches below are historical snapshots.
 
 ## Verified semantics
 

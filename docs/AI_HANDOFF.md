@@ -81,11 +81,26 @@ testing has happened. Do not create a moving `@v1` Action tag.
 
 ## 4. Current priority
 
-The next remaining **maintainer-gated** item is **npm publish (M2.5 / D14)**.
-Do not publish to npm. M4 Action source + GitHub tag `v0.1.0-alpha.2` exist;
-consumers pin `@v0.1.0-alpha.2`. A moving `@v1` tag must not be created
-while still pre-alpha. Post-release docs closeout (P2.1 recipes, ACTION.md
-pin, changelog fold) is the current non-gated M4 follow-up.
+**Latest weekly gate review: 2026-11-06 — DO NOT RELEASE.** See
+[the report](reviews/2026-11-06.md). Main is still `cbfaf07`; no work merged
+since the 2026-10-16 review. M2 is not gated only on npm publication: known
+unlanded safety corrections prevent a release-ready declaration; development
+dependency advisories and the Q1 library-API checklist also need explicit
+disposition. M5 remains
+incomplete; do not start M6 or invent suppression/adapters without user demand.
+
+Highest-value next task: maintainer review and sequential landing of existing
+fixes under #95, then combined-head CI/integration/package validation. Review
+#96 (PostgreSQL), #97 plus its stacked follow-up #99 (credentials), #98 (Action),
+and #93 (development dependency patches); preserve independent follow-ups such
+as #59, #66, #70, #79, and #87. These are proposals, not merged behavior or
+approval. Do not duplicate the queue or close superseded PRs before replacements
+land. Keep release tracking in #5. npm publication credentials are unavailable
+in this environment. No release/tag/version change is justified now.
+
+M4 Action source + GitHub tag `v0.1.0-alpha.2` exist; consumers pin
+`@v0.1.0-alpha.2`. A moving `@v1` tag must not be created while still pre-alpha.
+Earlier dated handoffs below are historical, not current release clearance.
 
 M2 progress as of 2026-09-04 (see `docs/MILESTONES.md` for detailed status):
 
