@@ -219,7 +219,15 @@ Prepare, but do not publish without explicit maintainer authorization
 - CI green ✅
 - no release is published automatically ✅ (publication is maintainer-gated)
 
-All pre-publication criteria hold. GitHub Pre-release tag `v0.1.0-alpha.2`
+The preparation checks above record historical delivery, not current release
+authorization. **2026-11-06 review: M2 remains open.** Known unlanded safety
+fixes and development dependency advisories must be resolved and the integrated
+head revalidated before publication; npm credentials are also unavailable in
+the review environment. The public-library API decision (Q1 / issue #5) remains
+unresolved. See [the weekly review](reviews/2026-11-06.md) for evidence and the
+existing landing queue; do not create duplicate release issues.
+
+GitHub Pre-release tag `v0.1.0-alpha.2`
 points to verified commit `c6a6211`; Action consumers should pin that immutable
 tag. **npm publish has not been performed** and remains maintainer-gated (D14).
 A moving major Action tag (`@v1`) must not be created while still pre-alpha.
@@ -390,6 +398,17 @@ Make the useful checks easy to add to a repository without requiring a custom CI
 ## M5 — Compatibility and policy hardening ⏳
 
 Depends on: real usage from M1–M4.
+
+**2026-11-06 gate review: not complete.** The output evolution policy and
+finding registry are delivered (`docs/OUTPUT_CONTRACT.md`,
+`tests/output-contract.test.ts`, `tests/findings-registry.test.ts`). Current CI
+proves Node 20/22 and PostgreSQL 16 only; proposed Kit, Node 24, and PostgreSQL
+18 coverage is still in open PRs. Relevant replay-equivalence and history
+safety corrections are also unlanded. No real-user suppression requirement or
+repeated adapter demand was found in the open issues. Keep suppression deferred
+and do not advance to M6. The next task is review/landing and combined-head
+validation of existing safety fixes, tracked by #95, not another implementation
+milestone. See [the weekly review](reviews/2026-11-06.md).
 
 ### Goal
 
