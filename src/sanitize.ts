@@ -36,6 +36,13 @@ function credentialForms(raw: string, decoded: string): string[] {
   ];
 }
 
+/** Match credentials literally, except for case-insensitive percent escapes. */
+function credentialPattern(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/%[\da-f]{2}/gi, (escape) => escape.replace(/[a-f]/gi,
+      (character) => `[${character.toLowerCase()}${character.toUpperCase()}]`));
+}
+
 /**
  * Removes connection-string credential material from `message`.
  *
@@ -63,9 +70,12 @@ export function redactConnectionString(message: string, connectionString?: strin
     const passwordForms = new Set(credentialForms(url.password, password));
     if (password) {
       // Identifiable userinfo is safe to redact even for a short password.
-      for (const username of new Set([url.username, user])) {
+      // Drivers may normalize percent-escape casing in the username too.
+      for (const username of new Set(credentialForms(url.username, user))) {
         for (const value of passwordForms) {
-          redacted = replaceAll(redacted, `${username}:${value}@`, `${username}:${REDACTED}@`);
+          const userinfo = new RegExp(`(${credentialPattern(username)}):${credentialPattern(value)}@`, 'g');
+          redacted = redacted.replace(userinfo,
+            (_match, matchedUsername: string) => `${matchedUsername}:${REDACTED}@`);
         }
       }
     }
@@ -83,7 +93,7 @@ export function redactConnectionString(message: string, connectionString?: strin
       for (const value of passwordForms) secrets.add(value);
     }
     for (const value of [...secrets].sort((a, b) => b.length - a.length)) {
-      redacted = replaceAll(redacted, value, REDACTED);
+      redacted = redacted.replace(new RegExp(credentialPattern(value), 'g'), () => REDACTED);
     }
   } catch {
     // Not URL-parseable (keyword/value form, scheme-less, malformed). The

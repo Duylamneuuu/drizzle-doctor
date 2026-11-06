@@ -8,6 +8,11 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ### Fixed
 
+- redact short URL userinfo passwords when diagnostics normalize percent-encoded
+  username spelling, without replacing unrelated short text
+- redact standalone userinfo/query passwords when diagnostics independently
+  change the casing of percent escapes, while matching punctuation literally
+
 - redact query-string passwords in their original percent-encoded spelling,
   including lowercase/mixed-case escapes and form-encoded spaces
 

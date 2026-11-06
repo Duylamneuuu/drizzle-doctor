@@ -8,6 +8,26 @@ import { redactConnectionString } from '../src/sanitize.js';
 const URL = 'postgres://doctor:s3cr3t-pass@db.example.com:5432/app';
 
 describe('redactConnectionString', () => {
+  it.each(['q', 'q7'])('redacts short userinfo passwords across username escape casing: %s', (password) => {
+    const connection = `postgres://user%3Aname%2frole:${password}@db.example.com/app`;
+    for (const username of ['user%3Aname%2frole', 'user%3Aname%2Frole', 'user%3aname%2frole', 'user%3aname%2Frole', 'user:name/role']) {
+      expect(redactConnectionString(`login ${username}:${password}@mirror rejected`, connection)).toBe(
+        `login ${username}:[REDACTED]@mirror rejected`,
+      );
+    }
+    expect(redactConnectionString(`retry ${password} queries`, connection)).toBe(`retry ${password} queries`);
+  });
+
+  it('matches username and short-password punctuation literally', () => {
+    const connection = 'postgres://user.name:.*@db.example.com/app';
+    expect(redactConnectionString('login user.name:.*@mirror rejected', connection)).toBe(
+      'login user.name:[REDACTED]@mirror rejected',
+    );
+    expect(redactConnectionString('login userXname:ab@mirror rejected', connection)).toBe(
+      'login userXname:ab@mirror rejected',
+    );
+  });
+
   it('redacts the full connection string when a driver embeds it verbatim', () => {
     const message = `connect ECONNREFUSED while connecting to ${URL} (retrying)`;
     expect(redactConnectionString(message, URL)).toBe(
@@ -200,6 +220,26 @@ describe('redactConnectionString', () => {
     expect(redactConnectionString(message, connectionString)).toBe(
       `login failed at postgres://${renderedUser}:[REDACTED]@mirror; backend labeled "ab"`,
     );
+  });
+
+  it('redacts standalone encoded passwords with independently cased percent escapes', () => {
+    const url = 'postgresql://doctor:long%2f%3asecret@localhost/test';
+    for (const password of ['long%2F%3asecret', 'long%2f%3Asecret']) {
+      expect(redactConnectionString(`authentication failed: ${password}`, url))
+        .toBe('authentication failed: [REDACTED]');
+    }
+  });
+
+  it('redacts mixed-case percent escapes in every password query value', () => {
+    const url = 'postgresql://doctor@localhost/test?password=first%2f%3asecret&pass=second%3a%2fsecret';
+    expect(redactConnectionString('driver: first%2F%3asecret second%3a%2Fsecret', url))
+      .toBe('driver: [REDACTED] [REDACTED]');
+  });
+
+  it('matches standalone password punctuation literally without treating it as a regex', () => {
+    const url = 'postgresql://doctor:a.b%2f%3asecret@localhost/test';
+    expect(redactConnectionString('driver: axb%2F%3asecret a.b%2F%3asecret', url))
+      .toBe('driver: axb%2F%3asecret [REDACTED]');
   });
 
   it('redacts credential fragments without a connection string', () => {
