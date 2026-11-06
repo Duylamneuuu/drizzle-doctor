@@ -222,6 +222,26 @@ describe('redactConnectionString', () => {
     );
   });
 
+  it('redacts standalone encoded passwords with independently cased percent escapes', () => {
+    const url = 'postgresql://doctor:long%2f%3asecret@localhost/test';
+    for (const password of ['long%2F%3asecret', 'long%2f%3Asecret']) {
+      expect(redactConnectionString(`authentication failed: ${password}`, url))
+        .toBe('authentication failed: [REDACTED]');
+    }
+  });
+
+  it('redacts mixed-case percent escapes in every password query value', () => {
+    const url = 'postgresql://doctor@localhost/test?password=first%2f%3asecret&pass=second%3a%2fsecret';
+    expect(redactConnectionString('driver: first%2F%3asecret second%3a%2Fsecret', url))
+      .toBe('driver: [REDACTED] [REDACTED]');
+  });
+
+  it('matches standalone password punctuation literally without treating it as a regex', () => {
+    const url = 'postgresql://doctor:a.b%2f%3asecret@localhost/test';
+    expect(redactConnectionString('driver: axb%2F%3asecret a.b%2F%3asecret', url))
+      .toBe('driver: axb%2F%3asecret [REDACTED]');
+  });
+
   it('redacts credential fragments without a connection string', () => {
     expect(redactConnectionString("login rejected: password='first second' host=db")).toBe(
       'login rejected: password=[REDACTED] host=db',

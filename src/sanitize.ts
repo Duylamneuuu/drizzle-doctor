@@ -93,7 +93,7 @@ export function redactConnectionString(message: string, connectionString?: strin
       for (const value of passwordForms) secrets.add(value);
     }
     for (const value of [...secrets].sort((a, b) => b.length - a.length)) {
-      redacted = replaceAll(redacted, value, REDACTED);
+      redacted = redacted.replace(new RegExp(credentialPattern(value), 'g'), () => REDACTED);
     }
   } catch {
     // Not URL-parseable (keyword/value form, scheme-less, malformed). The
