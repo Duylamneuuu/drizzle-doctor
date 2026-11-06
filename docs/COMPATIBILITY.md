@@ -133,6 +133,22 @@ same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`)
    history that never applied end-to-end. Reset the disposable target and
    re-run to continue after a failure.
 
+### File integrity during replay
+
+Re-verified 2026-11-06 against the current stable npm tarball,
+`drizzle-orm@0.45.4`: `migrator.js` and `pg-core/dialect.js` match the installed
+pin byte-for-byte. No timestamp/hash or transaction semantics were changed.
+
+Upstream `readMigrationFiles` derives executable SQL and its SHA-256 hash from
+the same file read. Doctor inspects the repository before connecting, then
+reads each file again for replay. It verifies the hash of the exact SQL string
+it will execute against the inspected hash before starting that migration.
+A mismatch is an operational failure (CLI exit `2`), not a SQL failure finding:
+the changed migration is neither executed nor recorded with a stale hash.
+The migration schema/table may already have been created, and earlier
+per-migration commits remain. Reset the disposable target and rerun with an
+unchanged migration history.
+
 ### Replay finding mapping
 
 | Finding | Meaning |

@@ -16,6 +16,8 @@
 
 Migration SQL and journal files are treated as input data for `repo` and `status` checks. The current commands do not execute migration SQL.
 
+Journal and referenced SQL paths must resolve to regular files inside the migrations directory. Inspection rejects paths that resolve outside it, and reads regular files without blocking on special files such as FIFOs.
+
 ### PostgreSQL status connection
 
 `status` uses the supplied connection only to discover/read the configured Drizzle migration table. It must not apply migrations or modify application data.
@@ -52,6 +54,17 @@ an isolated disposable database.
 Journal tags are accepted only as root-level file names (no POSIX or Windows
 path separators). This prevents malformed repository metadata from making an
 audit read, hash, or replay a file outside the configured migrations directory.
+Journal and SQL paths are also resolved before reading: their symlink targets
+must remain inside the resolved migrations directory. In-directory symlinks
+and a symlink supplied as the migrations directory remain supported. Replay
+rechecks SQL-file containment when rereading each migration. Escapes are
+reported with the existing unreadable-file findings, without exposing the
+external target path.
+
+These checks do not sandbox SQL or prevent all concurrent directory-replacement
+races during a run. Replay detects SQL content changes before executing each
+migration, but still requires a trusted migration history and an isolated
+disposable database.
 
 ### SQL identifier injection
 
@@ -85,6 +98,9 @@ of these:
   sanitized before they reach stderr or the JSON report (invariant D11)
 - failing migration/statement is reported without dumping sensitive data
   unnecessarily (tag, breakpoint-chunk index, SQLSTATE, sanitized message)
+- the SQL string read for execution must match the hash from repository
+  inspection; a changed file stops replay before executing that migration or
+  recording a stale hash (earlier per-migration commits remain)
 - test suite includes a guard against accidental use of a production-style
   status URL (`tests/cli.test.ts` asserts replay never reads `DATABASE_URL`)
 
