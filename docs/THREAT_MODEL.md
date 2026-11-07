@@ -95,7 +95,10 @@ of these:
   status URL (`tests/cli.test.ts` asserts replay never reads `DATABASE_URL`)
 
 Replay sets client-side query and PostgreSQL statement timeouts (30 seconds
-by default, configurable through the library). These are per-query/statement
+by default, configurable through the library). Replay enforces the server
+timeout on the connected session and the read timeout on each query, so URL
+parameters and startup options cannot override these limits. The connection
+deadline is supplied directly to the client. These are per-query/statement
 limits, not a whole-run deadline. Server-side cancellation lets rollback and
 session-lock cleanup proceed after a statement times out. Migration SQL is
 trusted input and can change session settings or explicitly release locks;

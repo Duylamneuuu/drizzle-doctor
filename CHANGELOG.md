@@ -12,6 +12,8 @@ The project intends to follow Semantic Versioning once packages are published.
   long-running statements rather than leaving them executing after a timeout
   is reported. The failing migration rolls back, later migrations are not
   attempted, and the replay session lock is released on connection close.
+  Connection URL parameters and startup options cannot disable the replay
+  statement timeout or override its per-query read timeout.
 
 - refuse overlapping clean replay against the same migration table before
   inspection or DDL, preventing two runs from both accepting an empty target

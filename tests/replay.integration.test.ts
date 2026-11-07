@@ -390,14 +390,27 @@ suite('replayMigrations', () => {
     expect(await replayMigrations(options)).toMatchObject({ applied: 1 });
   });
 
-  it('cancels timed-out statements on the server and rolls back the migration', async () => {
+  it.each([
+    ['ordinary URL', {}],
+    ['disabled server timeout', { statement_timeout: '0' }],
+    ['conflicting URL deadlines', {
+      statement_timeout: '0',
+      query_timeout: '1',
+      connect_timeout: '0',
+      connectionTimeoutMillis: '0',
+      options: '-c statement_timeout=0',
+    }],
+  ])('cancels timed-out statements and rolls back with %s', async (_label, parameters) => {
+    const replayUrl = new URL(connectionString!);
+    for (const [key, value] of Object.entries(parameters)) replayUrl.searchParams.set(key, value);
     const { dir } = await migration(
       [
         { idx: 0, when: 1000, tag: '0000_slow' },
         { idx: 1, when: 2000, tag: '0001_never' },
       ],
       {
-        '0000_slow.sql': `create table ${q('slow_table')}(id int);
+        '0000_slow.sql': `select pg_sleep(0.05);
+create table ${q('slow_table')}(id int);
 --> statement-breakpoint
 select pg_sleep(5);`,
         '0001_never.sql': `create table ${q('never_table')}(id int);`,
@@ -405,7 +418,7 @@ select pg_sleep(5);`,
     );
     const inspection = await inspectMigrationRepository(dir);
     const result = await replayMigrations({
-      connectionString: connectionString!,
+      connectionString: replayUrl.toString(),
       schema,
       table: '__drizzle_migrations',
       migrations: inspection.migrations,
@@ -433,7 +446,7 @@ select pg_sleep(5);`,
     expect(count.rows[0]?.n).toBe(0);
     // A timed-out replay must release its session lock, not just stop SQL.
     await expect(replayMigrations({
-      connectionString: connectionString!,
+      connectionString: replayUrl.toString(),
       schema,
       table: '__drizzle_migrations',
       migrations: [],

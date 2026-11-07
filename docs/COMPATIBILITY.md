@@ -149,9 +149,12 @@ same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`)
 4. **Bounded statements.** Replay sets a PostgreSQL statement timeout alongside
    the client-side query timeout (30 seconds by default, configurable through
    the library), so a client read timeout does not intentionally leave an
-   unbounded server statement. This is a per-statement safeguard, not an
-   upstream migration semantic or total replay deadline; trusted SQL can
-   override session settings.
+   unbounded server statement. The server limit is set on the connected
+   session before target inspection; each query supplies its read timeout
+   explicitly. Connection URL parameters (including startup options) cannot
+   override these limits, and connection/SSL parsing is left to pg unchanged.
+   This is a per-statement safeguard, not an upstream migration semantic or
+   total replay deadline; trusted SQL can override session settings.
 
 ### Replay finding mapping
 

@@ -514,3 +514,22 @@ Do not optimize for:
 - marketing claims before validation
 
 Optimize for reproducible evidence that the tool catches migration-history problems correctly.
+
+### Replay timeout URL-override follow-up (2026-11-07, PR #103)
+
+Independent review reproduced a gap in the original connection-safety
+integration: pg connection-string parameters override Client defaults, so
+`statement_timeout=0` could leave SQL running after a client read timeout.
+Replay now sets the server timeout on the connected session before target
+inspection and supplies the read timeout explicitly on every query (including
+rollback). Connection and SSL settings remain parsed by pg; its handshake
+deadline uses the explicit Client option, not URL parameters.
+
+The timeout regression now covers ordinary URLs, a disabled server timeout,
+and conflicting URL deadlines/startup options. It verifies a shorter query
+succeeds before the long query fails, server activity stops, the migration
+rolls back, later migrations are skipped, and the target lock is released.
+The two new cases failed on the previous PR head. Local verification passed
+typecheck, all 132 tests across 18 files (none skipped) on disposable PostgreSQL
+16, build, package dry-run (43 intended files), and diff checks. Keep maintainer
+review and landing gates in place; do not treat green CI as approval.
