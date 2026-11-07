@@ -101,7 +101,7 @@ it deserve error severity?
 ## Replay semantics (M3)
 
 The `replay` command (`src/replay.ts`) models the upstream PostgreSQL migrator
-for execution, with two deliberate diagnostic deviations. Verified against the
+for execution, with the deliberate diagnostic deviations below. Verified against the
 same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`).
 
 ### Matches upstream
@@ -132,6 +132,29 @@ same pinned `drizzle-orm` sources listed above (`0.45.2`; unchanged in `0.45.4`)
    fresh table; skipping already-applied migrations could silently validate a
    history that never applied end-to-end. Reset the disposable target and
    re-run to continue after a failure.
+3. **Exclusive replay session.** Before inspecting or creating the target,
+   replay acquires a non-blocking, session-level PostgreSQL advisory lock
+   keyed by the configured schema/table identifiers. It retains the lock
+   across migration commits until its dedicated connection closes. A competing
+   replay fails operationally (exit `2`) before DDL or migration execution,
+   rather than letting both runs pass the empty-table check. This coordinates
+   `drizzle-doctor` replays only, not upstream migrators or external writers.
+   Identifier truncation/quoting is reflected in the key; hash collisions can
+   conservatively refuse an unrelated target, never allow duplicate replay.
+   This is cooperative coordination, not an isolation/security boundary:
+   migration SQL that explicitly releases session advisory locks (for example,
+   `pg_advisory_unlock_all()`) can bypass it. Such session-control SQL must
+   not be used when relying on replay exclusion.
+
+4. **Bounded statements.** Replay sets a PostgreSQL statement timeout alongside
+   the client-side query timeout (30 seconds by default, configurable through
+   the library), so a client read timeout does not intentionally leave an
+   unbounded server statement. The server limit is set on the connected
+   session before target inspection; each query supplies its read timeout
+   explicitly. Connection URL parameters (including startup options) cannot
+   override these limits, and connection/SSL parsing is left to pg unchanged.
+   This is a per-statement safeguard, not an upstream migration semantic or
+   total replay deadline; trusted SQL can override session settings.
 
 ### Replay finding mapping
 

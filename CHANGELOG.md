@@ -6,6 +6,21 @@ The project intends to follow Semantic Versioning once packages are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- Replay now bounds statements on PostgreSQL as well as the client, cancelling
+  long-running statements rather than leaving them executing after a timeout
+  is reported. The failing migration rolls back, later migrations are not
+  attempted, and the replay session lock is released on connection close.
+  Connection URL parameters and startup options cannot disable the replay
+  statement timeout or override its per-query read timeout.
+
+- refuse overlapping clean replay against the same migration table before
+  inspection or DDL, preventing two runs from both accepting an empty target
+  and applying non-idempotent SQL twice. The per-target session advisory lock
+  is released on success or failure; contention is an operational error
+  (exit `2`). Read-only `repo` and `status` behavior is unchanged.
+
 ### Changed
 
 - bump the pinned `drizzle-orm` devDependency from 0.45.2 to 0.45.4 after diffing

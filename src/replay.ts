@@ -14,7 +14,7 @@
 //   migration rows), the upstream high-watermark is always absent, so no
 //   migration is skipped
 //
-// Deliberate deviations, both of which make replay a useful *diagnostic*
+// Deliberate deviations, which make replay a useful *diagnostic*
 // rather than a deployment:
 //
 // - each migration runs in its own transaction instead of one transaction
@@ -27,6 +27,8 @@
 //   table already contains rows. A "clean replay" from zero is only
 //   meaningful on a fresh table; skipping already-applied migrations could
 //   silently validate a history that never applied end-to-end.
+// - a session advisory lock excludes overlapping replay runs against the
+//   same metadata table, including the initial empty-target check and DDL.
 //
 // Replay is destructive by definition and must never be reached implicitly:
 // the CLI requires an explicit --database-url (this module never reads
@@ -34,7 +36,7 @@
 
 import { readFile } from 'node:fs/promises';
 
-import { Client } from 'pg';
+import { Client, type QueryResultRow } from 'pg';
 
 import { quoteIdentifier } from './postgres.js';
 import { redactConnectionString } from './sanitize.js';
@@ -76,16 +78,48 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
     connectionString,
     connectionTimeoutMillis: timeoutMs,
     query_timeout: timeoutMs,
-    statement_timeout: 0, // client-side query_timeout guards long queries
+    // A client-side read timeout does not cancel server execution. Bound
+    // statements on PostgreSQL too, so rollback can proceed after a timeout.
+    statement_timeout: timeoutMs,
     application_name: 'drizzle-doctor-replay',
   });
   await client.connect();
 
+  // pg merges connection-string options over Client defaults. Per-query
+  // config wins over a URL's query_timeout without reparsing connection/SSL
+  // options or relying on driver internals.
+  const query = <Row extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]) => {
+    const config = { text, values, query_timeout: timeoutMs };
+    return client.query<Row>(config);
+  };
+
   try {
+    // Override URL/startup settings on the connected session before any
+    // target inspection or migration SQL. The startup Client option alone
+    // can be disabled by statement_timeout=0 in the connection URL.
+    await query("select pg_catalog.set_config('statement_timeout', $1, false)", [String(timeoutMs)]);
     const schemaIdent = quoteIdentifier(schema);
     const tableIdent = quoteIdentifier(table);
 
-    const existing = await client.query<{ exists: boolean }>(
+    // Hold across per-migration commits until this dedicated session ends.
+    // Acquire before inspecting/creating the target: two empty-table checks
+    // must not both succeed and replay the same non-idempotent SQL. Cast to
+    // name so aliases truncated by PostgreSQL use the same lock key; format
+    // quotes each component so names containing dots cannot alias the pair.
+    // This coordinates cooperating runs, not SQL that explicitly releases
+    // session locks (for example, pg_advisory_unlock_all()).
+    const lock = await query<{ acquired: boolean }>(
+      `select pg_catalog.pg_try_advisory_lock(
+        pg_catalog.hashtext('drizzle-doctor/replay'),
+        pg_catalog.hashtext(pg_catalog.format('%I.%I', $1::name, $2::name))
+      ) as acquired`,
+      [schema, table],
+    );
+    if (!lock.rows[0]?.acquired) {
+      throw new Error('Another replay is already running against this migration table.');
+    }
+
+    const existing = await query<{ exists: boolean }>(
       `select exists (
         select 1
         from information_schema.tables
@@ -96,7 +130,7 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
     const tableExists = Boolean(existing.rows[0]?.exists);
     let rowCount = 0;
     if (tableExists) {
-      const count = await client.query<{ n: string }>(
+      const count = await query<{ n: string }>(
         `select count(*)::text as n from ${schemaIdent}.${tableIdent}`,
       );
       rowCount = Number(count.rows[0]?.n ?? 0);
@@ -112,8 +146,8 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
       };
     }
 
-    await client.query(`create schema if not exists ${schemaIdent}`);
-    await client.query(
+    await query(`create schema if not exists ${schemaIdent}`);
+    await query(
       `create table if not exists ${schemaIdent}.${tableIdent} (
         id serial primary key,
         hash text not null,
@@ -126,21 +160,21 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
       const sql = await readFile(migration.sqlPath, 'utf8');
       const chunks = splitChunks(sql);
 
-      await client.query('begin');
+      await query('begin');
       let statement = 0;
       try {
         for (const chunk of chunks) {
           statement += 1;
-          await client.query(chunk);
+          await query(chunk);
         }
-        await client.query(
+        await query(
           `insert into ${schemaIdent}.${tableIdent} ("hash", "created_at") values ($1, $2)`,
           [migration.hash, migration.when],
         );
-        await client.query('commit');
+        await query('commit');
         applied += 1;
       } catch (error) {
-        await client.query('rollback').catch(() => undefined);
+        await query('rollback').catch(() => undefined);
         const sanitized = sanitizeError(error, connectionString);
         const failure: ReplayFailure = {
           tag: migration.tag,
@@ -155,6 +189,7 @@ export async function replayMigrations(options: ReplayOptions): Promise<ReplayRe
 
     return { schema, table, total: migrations.length, applied };
   } finally {
+    // Ending the session releases the advisory lock on every exit path.
     await client.end();
   }
 }
