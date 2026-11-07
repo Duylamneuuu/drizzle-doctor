@@ -56,8 +56,11 @@ on an explicitly disposable PostgreSQL target. It models the upstream
 PostgreSQL migrator: creates the migration schema/table with Drizzle's DDL,
 splits SQL on the literal `--> statement-breakpoint` marker, executes chunks
 verbatim, and inserts `(hash, created_at)` rows. See
-`docs/COMPATIBILITY.md` for the two deliberate diagnostic deviations
-(per-migration transactions, strict-clean target).
+`docs/COMPATIBILITY.md` for the diagnostic safeguards: per-migration
+transactions, a strict-clean target, session-level replay exclusion, and
+per-statement timeouts. The target lock spans per-migration commits and is
+released when the dedicated connection closes; it coordinates cooperating
+replays, not arbitrary SQL or external writers.
 
 Replay is destructive and reachable only through the CLI's explicit
 `replay --database-url <url> --confirm-destructive` invocation; the engine
