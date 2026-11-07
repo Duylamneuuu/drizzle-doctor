@@ -332,6 +332,29 @@ Do not jump directly to broad adapter support or feature expansion. The active s
 
 See `docs/MILESTONES.md` for gates and exact completion criteria.
 
+### Replay runtime safety integration (2026-11-07)
+
+The current maintenance branch combines #68 (server-side statement cancellation)
+and #84 (session-level overlap prevention). Both affect replay's dedicated
+connection lifecycle. Keep the source PRs open until this integration is
+reviewed and landed; do not merge them independently on top of it.
+
+The integration retains both regression suites and adds a timeout/lock-release
+check. Local verification on disposable PostgreSQL 16 passed typecheck, all 130
+tests (none skipped), build, package dry-run (43 intended files), and diff
+checks. Fresh registry/tarball inspection confirmed stable `drizzle-orm@0.45.4`;
+its migrator and PostgreSQL dialect match the installed pin byte-for-byte.
+The timeout regression failed before the fix with a still-active backend.
+
+Replay acquires a nonblocking target lock before inspection/DDL, holds it across
+per-migration commits, and configures PostgreSQL statement timeouts
+alongside client timeouts. These coordinate cooperating replays, not external
+writers or SQL that changes session settings/releases locks. The target must
+still be explicitly disposable. No finding/JSON/Node support change.
+
+Maintainer landing of safety fixes tracked by #95 remains the priority; npm
+publication (#5), release tags, and moving Action tags remain gated.
+
 ## 5. Existing GitHub tasks
 
 Open issue tracking the next release gate:
